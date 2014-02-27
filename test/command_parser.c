@@ -23,7 +23,7 @@ int color = 0;
 int main (int argc, char ** argv){
 	//da usare argp
 	int opt;
-	while((opt = getopt(argc,argv,"vhc")) != -1){
+	while((opt = getopt(argc,argv,"cvh")) != -1){
 		switch(opt){
 			case 'c':
 				color = 1;

@@ -41,6 +41,7 @@ int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 
 int printSeatsColored(int rows, int cols, int mat[rows][cols]){
 	int i,j;
+	//offset laterale
 	printf("   ");
 	for(i=0; i<cols; i++){
 	printf("  %d ", i);
