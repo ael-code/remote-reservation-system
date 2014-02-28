@@ -1,0 +1,69 @@
+Strutture Salvataggio prenotazioni
+
+	- Matrice di interi NxM
+		se il posto e' libero 0
+		se il posto e' prenotato ci inserisco il numero di prenotazione
+		
+	- Array delle prenotazioni, ogni cella contiene:
+		# codice alfanumerico relativo alla prenotazione
+		# puntatore alla'array dei posti prenotati
+		
+
+
+Funzione per la ricerca posti di una data prenotazione
+
+	si usa la prima sezione della chiavazione per accedere all'indice dell'array delle prenotazioni.
+	si verifica l'uguaglianza del codice alfanumerico fornito.
+	si accede all'array di posti relativo.
+
+	
+Generazione chiavazione
+
+ 2 sezioni
+ 	1) lunga log_10(NXM) e rappresenta l'indice nell'array di prenotazioni
+ 	2) codice alfanumerico casuale (password)
+ 	
+ 	
+
+
+Protocollo comunicazione
+
+	HEADER: char req[15]
+
+Lato client:
+
+- Richiesta mappa posti
+	req = MAP_REQUEST
+	
+- Prenotazione posti
+	req = PRENOTATION
+	
+- Disdetta posti
+	req = CHECKOUT
+	
+- Richiesta posti assegnati
+	req = SEAT_REQUEST
+
+Lato server:
+
+- Responso mappa posti
+	
+	req = MAP_RESPONSE
+	int rows
+	int cols
+	char 
+	char 
+	char 
+	.
+	.
+	.
+	char
+	
+- Responso prenotazione
+	req = PRE_RESPONSE
+	
+- Responso disdetta
+	req = OUT_RESPONSE
+	
+- Responso posti assegnati
+	req = SEAT_RESPONSE
