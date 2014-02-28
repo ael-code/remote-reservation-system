@@ -18,15 +18,9 @@ void * dispatcher_thread(void * arg){
 void print_server_info(struct server_option *opt){
 	printf("\n");
 	if(opt->colored == 1){
-		printf("\
-\e[1;32mServer port:\e[0;34m %d\e[0m\n\
-\e[1;32mBacklog:\e[0;34m %d\e[0m\n\
-		",opt->port,opt->backlog);
+		printf("\e[1;32mServer port:\e[0;34m %d\e[0m\n\e[1;32mBacklog:\e[0;34m %d\e[0m\n",opt->port,opt->backlog);
 	}else{
-		printf("\
-Server port: %d\n\
-Backlog: %d\n\
-		",opt->port,opt->backlog);
+		printf("Server port: %d\nBacklog: %d\n",opt->port,opt->backlog);
 	}
 }
 
@@ -59,19 +53,17 @@ int start_listen_thread(struct server_option *opt){
 	}
 }
 
-static int parse_opt (int key, char *arg, struct argp_state *state){
+error_t parse_opt (int key, char *arg, struct argp_state *state){
 	struct server_option * opt = state->input;
 	switch (key){
 		case 'p':
-		{
 			opt->port = atoi(arg);
 			break;
-		}
 		case 'c':
-		{
 			opt ->colored = 1;
 			break;
-		}
+		default:
+			return ARGP_ERR_UNKNOWN;
 	}
 	return 0;
 }
@@ -91,6 +83,8 @@ int main (int argc, char **argv){
 	struct argp argp = { options, parse_opt, 0, 0 };
 	argp_parse (&argp, argc, argv, 0, 0, &sopt);
 	/* End parser */
+	
+	
 	
 	start_listen_thread(&sopt);
 	
