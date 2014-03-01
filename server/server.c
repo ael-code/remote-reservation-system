@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "chiavazione.h"
 
 struct server_option{
 	int port;  							// 0 means random port
@@ -70,6 +71,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 
 int main (int argc, char **argv){
 	
+	// chiavazione initialization
+	initialize_generator();
+	
 	// 0 is a random port
 	struct server_option sopt = {0,50,0};
 	
@@ -84,7 +88,8 @@ int main (int argc, char **argv){
 	argp_parse (&argp, argc, argv, 0, 0, &sopt);
 	/* End parser */
 	
-	
+	//
+	printf("%s",chiavazione_gen(16,300,10));
 	
 	start_listen_thread(&sopt);
 	
