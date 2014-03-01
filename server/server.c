@@ -1,14 +1,19 @@
+//compile: gcc -o server.out server.c chiavazione.c -pthread -lm
 #include <stdio.h>
+#include <stdlib.h>
 #include <argp.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "chiavazione.h"
+#include "../rrs_protocol.h"
 
 struct server_option{
 	int port;  							// 0 means random port
 	int backlog;  						// 50 default
 	unsigned short int colored;	// 0 = false; 1=true; dafault 0
+	unsigned int map_rows;
+	unsigned int map_cols;
 };
 
 void * dispatcher_thread(void * arg){
@@ -19,9 +24,9 @@ void * dispatcher_thread(void * arg){
 void print_server_info(struct server_option *opt){
 	printf("\n");
 	if(opt->colored == 1){
-		printf("\e[1;32mServer port:\e[0;34m %d\e[0m\n\e[1;32mBacklog:\e[0;34m %d\e[0m\n",opt->port,opt->backlog);
+		printf("\e[1;32mServer port:\e[0;34m %d\e[0m\n\e[1;32mBacklog:\e[0;34m %d\e[0m\n\e[1;32mRows:\e[0;34m %d\e[0m\n\e[1;32mCols:\e[0;34m %d\e[0m\n",opt->port,opt->backlog,opt->map_rows,opt->map_cols);
 	}else{
-		printf("Server port: %d\nBacklog: %d\n",opt->port,opt->backlog);
+		printf("Server port: %d\nBacklog: %d\nRows: %d\nCols: %d\n",opt->port,opt->backlog,opt->map_rows,opt->map_cols);
 	}
 }
 
@@ -56,12 +61,39 @@ int start_listen_thread(struct server_option *opt){
 
 error_t parse_opt (int key, char *arg, struct argp_state *state){
 	struct server_option * opt = state->input;
+	int temp;
 	switch (key){
 		case 'p':
 			opt->port = atoi(arg);
 			break;
 		case 'c':
 			opt ->colored = 1;
+			break;
+		case ARGP_KEY_ARG:
+			switch (state->arg_num){
+				case 0:
+					temp = strtol(arg,NULL,10);
+					if(temp < 1){
+						printf("ERROR: \"%s\" is not a valid rows number\n",arg);
+						exit(1);
+					}else{
+						opt->map_rows = temp;
+					}break;
+				case 1:
+					temp = strtol(arg,NULL,10);
+					if(temp < 1){
+						printf("ERROR: \"%s\" is not a valid cols number\n",arg);
+						exit(1);
+					}else{
+						opt->map_cols = temp;
+					}break;
+			}break;
+		case ARGP_KEY_END:
+			if(state->arg_num < 2){
+				printf("ERROR: too few arguments\n");
+				argp_usage(state);
+				exit(1);
+			}
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;
@@ -74,7 +106,7 @@ int main (int argc, char **argv){
 	// chiavazione initialization
 	initialize_generator();
 	
-	// 0 is a random port
+	// server_option initialization [ 0 is a random port ]
 	struct server_option sopt = {0,50,0};
 	
 	
@@ -84,16 +116,16 @@ int main (int argc, char **argv){
 		{"colored-output", 'c', 0, 0,"Colored output"},
 		{ 0 }
 	};
-	struct argp argp = { options, parse_opt, 0, 0 };
+	struct argp argp = { options, parse_opt, "rows cols", 0 };
 	argp_parse (&argp, argc, argv, 0, 0, &sopt);
 	/* End parser */
 	
-	//
+	// debug chiavazione
 	printf("%s",chiavazione_gen(16,300,10));
 	
-	start_listen_thread(&sopt);
 	
+	//seats initialization
+	int seats[sopt.map_rows][sopt.map_cols];
 	
+	start_listen_thread(&sopt);	
 }
-
-
