@@ -33,7 +33,7 @@ int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 	printf("\n");
 	
 	for(i=0; i<rows; i++){
-	printf("%c  |", 65+i);
+	printf("%d  |", i);
 		for(j=0; j<cols; j++){
 			if(mat[i][j])
 				printf("_#_|");
@@ -63,7 +63,7 @@ int printSeatsColored(int rows, int cols, int mat[rows][cols]){
 	printf("\n");
 	
 	for(i=0; i<rows; i++){
-	printf("%c  |", 65+i);
+	printf("%d  |", i);
 		for(j=0; j<cols; j++){
 			if(mat[i][j])
 				printf("\e[41m___\e[0m|");

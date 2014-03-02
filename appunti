@@ -6,7 +6,7 @@ Strutture Salvataggio prenotazioni
 		
 	- Array delle prenotazioni, ogni cella contiene:
 		# codice alfanumerico relativo alla prenotazione
-		# puntatore alla'array dei posti prenotati
+		# puntatore all'array dei posti prenotati
 		
 
 

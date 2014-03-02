@@ -9,6 +9,7 @@ static char * seed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345
 
 // generazione chiave prenotazione (chiavzione)
 char * chiavazione_gen(unsigned int index, unsigned int	max_index ,unsigned int pwd_length){
+	pwd_length++; // include /0
 	int length = strlen(seed);
 	unsigned int i;
 	char pwd[pwd_length];
@@ -16,7 +17,7 @@ char * chiavazione_gen(unsigned int index, unsigned int	max_index ,unsigned int 
 	
 	char * result;
 	
-	result = (char* )malloc(index_max_lenght+pwd_length);
+	result = (char* )malloc(index_max_length+pwd_length);
 	if(result == NULL){perror("malloc"); return NULL;}
 	
 	char temp_i[index_max_length];

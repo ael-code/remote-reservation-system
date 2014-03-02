@@ -1,18 +1,20 @@
-//compile: gcc -o server.out server.c chiavazione.c ../lib/seats.c -pthread -lm
+//compile: gcc -o server.out server.c reservation.c chiavazione.c ../lib/seats.c -pthread -lm
 #include <stdio.h>
 #include <stdlib.h>
 #include <argp.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include "chiavazione.h"
 #include "../lib/rrs_protocol.h"
 #include "../lib/seats.h"
+#include "reservation.h"
 
+//struct to store server option
 struct server_option{
-	int port;  							// 0 means random port
-	int backlog;  						// 50 default
-	unsigned short int colored;	// 0 = false; 1=true; dafault 0
+	int port;  								// 0 means random port
+	int backlog;  							// 50 default
+	unsigned short int colored;		// 0 = false; 1=true; dafault 0
+	unsigned int pwd_length;
 	unsigned int map_rows;
 	unsigned int map_cols;
 };
@@ -68,8 +70,16 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			opt->port = atoi(arg);
 			break;
 		case 'c':
-			opt ->colored = 1;
+			opt->colored = 1;
 			break;
+		case 's':
+			temp = strtol(arg,NULL,10);
+			if(temp < 1){
+				printf("ERROR: \"%s\" is not a valid pwd length\n",arg);
+				exit(1);
+			}else{
+				opt-> pwd_length = temp;
+			}break;
 		case ARGP_KEY_ARG:
 			switch (state->arg_num){
 				case 0:
@@ -103,37 +113,36 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 }
 
 int main (int argc, char **argv){
-	
-	// chiavazione initialization
-	initialize_generator();
-	
+		
 	// server_option initialization
-	struct server_option sopt = {0,50,0};
-	
+	struct server_option sopt = {0,50,0,8};
 	
 	/*Parser section*/
 	struct argp_option options[] = { 
 		{"port", 'p', "PORT-NUM", 0, "Listening port"},
 		{"colored-output", 'c', 0, 0,"Colored output"},
+		{"pwd-length", 's', "LENGTH", 0,"length of password used to generate reservation keys [default 8]"},
 		{ 0 }
 	};
 	struct argp argp = { options, parse_opt, "rows cols", 0 };
 	argp_parse (&argp, argc, argv, 0, 0, &sopt);
 	/* End parser */
 	
-	// debug chiavazione
-	printf("%s\n",chiavazione_gen(16,300,10));
-	
 	//seats initialization
 	int seats[sopt.map_rows][sopt.map_cols];
+	resetSeats(sopt.map_rows,sopt.map_cols,seats);
+	
+	//memmory structure initialization
+	reservation_init(sopt.map_rows*sopt.map_cols,sopt.pwd_length);
+	
+	//debug reservation 
+	printf("%s\n",reservation_perform(5,NULL));
 	
 	//debug seats
-	resetSeats(sopt.map_rows,sopt.map_cols,seats);
 	if(sopt.colored != 0)
 		printSeatsColored(sopt.map_rows,sopt.map_cols,seats);
 	else
 		printSeatsSpecial(sopt.map_rows,sopt.map_cols,seats);
-	
-	
+		
 	start_listen_thread(&sopt);	
 }
