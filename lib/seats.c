@@ -1,8 +1,10 @@
- #include <stdio.h> //printf
- #include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "seats.h"
 
-
-
+/*
+* Print Seats like matrix of integers
+*/
 int printSeats(int rows, int cols, int mat[rows][cols]){
 	int i,j;
 	for(i=0; i<rows; i++){
@@ -13,6 +15,9 @@ int printSeats(int rows, int cols, int mat[rows][cols]){
 	}
 }
 
+/*
+* Print Seats like matrix of cels |__|
+*/
 int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 	int i,j;
 	printf("   ");
@@ -39,6 +44,9 @@ int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 	}
 }
 
+/*
+* Print Seats like matrix of colored cels
+*/
 int printSeatsColored(int rows, int cols, int mat[rows][cols]){
 	int i,j;
 	//offset laterale
@@ -66,6 +74,9 @@ int printSeatsColored(int rows, int cols, int mat[rows][cols]){
 	}
 }
 
+/*
+* put all seats to 0;
+*/
 int resetSeats(int rows, int cols, int mat[rows][cols]){
 	int i,j;
 	for(i=0; i<rows; i++)
@@ -74,30 +85,9 @@ int resetSeats(int rows, int cols, int mat[rows][cols]){
 		}
 }
 
+/*
+* Print information about seats map dimension
+*/
 int infoSeats (int rows, int cols, int mat[rows][cols]){
 printf("rows: %d\ncols: %d\n",rows,cols);
-}
-
-int main (int argc, char ** argv){
-
-	printf("started\n");
-	int rows = 8;
-	int cols = 10;
-	int seats[rows][cols];
-	
-	resetSeats(rows,cols,seats);
-	
-	seats[3][4] = 1;
-	seats[6][2] = 1;
-	seats[5][1] = 1;
-	seats[2][7] = 1;
-	seats[5][6] = 1;
-	seats[5][5] = 1;
-	
-	infoSeats(rows,cols,seats);
-	printf("\n");
-	printSeatsColored(rows,cols,seats);
-	printf("\n");
-	
-	exit(0);
 }

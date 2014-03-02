@@ -1,4 +1,4 @@
-//compile: gcc -o server.out server.c chiavazione.c -pthread -lm
+//compile: gcc -o server.out server.c chiavazione.c ../lib/seats.c -pthread -lm
 #include <stdio.h>
 #include <stdlib.h>
 #include <argp.h>
@@ -6,7 +6,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "chiavazione.h"
-#include "../rrs_protocol.h"
+#include "../lib/rrs_protocol.h"
+#include "../lib/seats.h"
 
 struct server_option{
 	int port;  							// 0 means random port
@@ -106,7 +107,7 @@ int main (int argc, char **argv){
 	// chiavazione initialization
 	initialize_generator();
 	
-	// server_option initialization [ 0 is a random port ]
+	// server_option initialization
 	struct server_option sopt = {0,50,0};
 	
 	
@@ -121,11 +122,18 @@ int main (int argc, char **argv){
 	/* End parser */
 	
 	// debug chiavazione
-	printf("%s",chiavazione_gen(16,300,10));
-	
+	printf("%s\n",chiavazione_gen(16,300,10));
 	
 	//seats initialization
 	int seats[sopt.map_rows][sopt.map_cols];
+	
+	//debug seats
+	resetSeats(sopt.map_rows,sopt.map_cols,seats);
+	if(sopt.colored != 0)
+		printSeatsColored(sopt.map_rows,sopt.map_cols,seats);
+	else
+		printSeatsSpecial(sopt.map_rows,sopt.map_cols,seats);
+	
 	
 	start_listen_thread(&sopt);	
 }
