@@ -16,7 +16,7 @@ char * chiavazione_gen(unsigned int index, unsigned int	max_index ,unsigned int 
 	
 	char * result;
 	
-	result = (char* )malloc(4+pwd_length);
+	result = (char* )malloc(index_max_lenght+pwd_length);
 	if(result == NULL){perror("malloc"); return NULL;}
 	
 	char temp_i[index_max_length];
