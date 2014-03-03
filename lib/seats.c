@@ -23,8 +23,6 @@ int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 	int i,j;
 	int char_num = int_to_charc(rows-1);
 	
-	printf("%d\n",char_num);
-	
 	printf("%*s",char_num+1,"");
 	for(i=0; i<cols; i++){
 		printf("  %d ", i);

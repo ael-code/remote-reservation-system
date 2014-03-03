@@ -16,9 +16,13 @@ struct res_entry{
 };
 
 
-void reservation_init(int max_rese,int pwd_length);
+void reservation_init(unsigned int max_rese,unsigned int pwd_length);
+
 char * reservation_perform(int s_num,struct seat * seats);
 
+int reservation_delete(char * chiavazione);
+
+struct res_entry * get_reservation(char * chiavazione);
 
 
 

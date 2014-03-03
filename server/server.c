@@ -1,4 +1,4 @@
-//compile: gcc -o server.out server.c reservation.c chiavazione.c ../lib/seats.c ../lib/conversion.c -pthread
+//compile: gcc -o server.out server.c reservation.c chiavazione.c ../lib/seats.c ../lib/conversion.c -pthread -O3
 #include <stdio.h>
 #include <stdlib.h>
 #include <argp.h>
@@ -136,7 +136,11 @@ int main (int argc, char **argv){
 	reservation_init(sopt.map_rows*sopt.map_cols,sopt.pwd_length);
 	
 	//debug reservation 
-	printf("%s\n",reservation_perform(5,NULL));
+	char * res_test = reservation_perform(5,NULL);
+	printf("%s\n",res_test);
+	printf("%d\n",reservation_delete(res_test));
+	printf("%d\n",reservation_delete(res_test));
+	
 	
 	//debug seats
 	if(sopt.colored != 0)
