@@ -1,19 +1,19 @@
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "chiavazione.h"
+#include "../lib/conversion.h"
 
 static char * seed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 // generazione chiave prenotazione (chiavzione)
-char * chiavazione_gen(unsigned int index, unsigned int	max_index ,unsigned int pwd_length){
+char * chiavazione_gen(unsigned int index, unsigned int max_index ,unsigned int pwd_length){
 	pwd_length++; // include /0
 	int length = strlen(seed);
 	unsigned int i;
 	char pwd[pwd_length];
-	int index_max_length = (int) ceil(log10((double)max_index+1));
+	int index_max_length = int_to_charc(max_index);
 	
 	char * result;
 	

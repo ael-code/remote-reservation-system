@@ -1,4 +1,4 @@
-//compile: gcc -o server.out server.c reservation.c chiavazione.c ../lib/seats.c -pthread -lm
+//compile: gcc -o server.out server.c reservation.c chiavazione.c ../lib/seats.c ../lib/conversion.c -pthread
 #include <stdio.h>
 #include <stdlib.h>
 #include <argp.h>
