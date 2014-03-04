@@ -6,11 +6,11 @@
 /*
 * Print Seats like matrix of integers
 */
-int printSeats(int rows, int cols, int mat[rows][cols]){
+int printSeats(int rows, int cols,char mat[rows][cols]){
 	int i,j;
 	for(i=0; i<rows; i++){
 		for(j=0; j<cols; j++){
-			printf("%d ",mat[i][j]);
+			printf("%c ",(mat[i][j]==1)?'1':'0');
 		}
 		printf("\n");
 	}
@@ -19,7 +19,7 @@ int printSeats(int rows, int cols, int mat[rows][cols]){
 /*
 * Print Seats like matrix of cels |__|
 */
-int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
+int printSeatsSpecial(int rows, int cols,char mat[rows][cols]){
 	int i,j;
 	int char_num = int_to_charc(rows-1);
 	
@@ -38,7 +38,7 @@ int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 	for(i=0; i<rows; i++){
 	printf("%*d |",char_num, i);
 		for(j=0; j<cols; j++){
-			if(mat[i][j])
+			if(mat[i][j]==1)
 				printf("_#_|");
 			else
 				printf("___|");
@@ -50,7 +50,7 @@ int printSeatsSpecial(int rows, int cols, int mat[rows][cols]){
 /*
 * Print Seats like matrix of colored cels
 */
-int printSeatsColored(int rows, int cols, int mat[rows][cols]){
+int printSeatsColored(int rows, int cols,char mat[rows][cols]){
 	int i,j;
 	int char_num = int_to_charc(rows-1);
 	
@@ -70,7 +70,7 @@ int printSeatsColored(int rows, int cols, int mat[rows][cols]){
 	for(i=0; i<rows; i++){
 	printf("%*d |",char_num, i);
 		for(j=0; j<cols; j++){
-			if(mat[i][j])
+			if(mat[i][j]==1)
 				printf("\e[41m___\e[0m|");
 			else
 				printf("\e[42m___\e[0m|");
@@ -82,17 +82,10 @@ int printSeatsColored(int rows, int cols, int mat[rows][cols]){
 /*
 * put all seats to 0;
 */
-int resetSeats(int rows, int cols, int mat[rows][cols]){
+int resetSeats(int rows, int cols, char mat[rows][cols]){
 	int i,j;
 	for(i=0; i<rows; i++)
 		for(j=0; j<cols; j++){
-			mat[i][j] =0;
+			mat[i][j]=0;
 		}
-}
-
-/*
-* Print information about seats map dimension
-*/
-int infoSeats (int rows, int cols, int mat[rows][cols]){
-	printf("rows: %d\ncols: %d\n",rows,cols);
 }

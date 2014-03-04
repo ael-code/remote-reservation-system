@@ -1,4 +1,4 @@
-//compile: gcc -o server.out server.c reservation.c chiavazione.c ../lib/seats.c ../lib/conversion.c -pthread -O3
+//compile: gcc -o server.out server.c reservation.c chiavazione.c matrix.c ../lib/seats.c ../lib/conversion.c -pthread -O3
 #include <stdio.h>
 #include <stdlib.h>
 #include <argp.h>
@@ -6,9 +6,11 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include "matrix.h"
 #include "../lib/rrs_protocol.h"
 #include "../lib/seats.h"
 #include "reservation.h"
+#include <signal.h>
 
 #define HEADER_DIM 20
 
@@ -33,11 +35,24 @@ struct thread_param{
 //Global variable
 struct server_option sopt;
 
+
+//thread cleanup
+void clean_thread_param(void * thread_parameter){
+	if(sopt.verbose == 1){printf("# Closing thread\n");}
+	free(thread_parameter);
+}
+
 /*
 *	Thread to menage incoming connetcions
 */
+
 void * dispatcher_thread(void * thread_parameter){
+	
 	struct thread_param * t_param = (struct thread_param *) thread_parameter;
+	
+	//routine to cleanup thread_parameter called on pthread_exit
+	pthread_cleanup_push(clean_thread_param,thread_parameter);
+	
 	//store client ip
 	char ip[16];
 	strcpy(ip,inet_ntoa(t_param->addr.sin_addr));
@@ -52,30 +67,36 @@ void * dispatcher_thread(void * thread_parameter){
 	
 	//recive header
 	res = recv(t_param->sok,(void *)req_header,HEADER_DIM,0);
-	//header[res] = '\0';
 	
 	if(res == -1){
 		printf("Error: client sok\n");
-	}else{
-	
-		if(strcmp(req_header,"MAP_REQUEST\n") == 0){
-			//reply MAP_RESPONSE
-			char * resp="MAP_RESPONSE";
-			res = send(t_param->sok,resp,strlen(resp),0);
-			if(res == -1){perror("send MAP_RESPONSE");exit(-1);}
-			//send map dimension
-			unsigned int dim[2];
-			dim[0] = sopt.map_rows;
-			dim[1] = sopt.map_cols;
-			res = send(t_param->sok,dim,sizeof(dim),0);
-			if(res == -1){perror("send map dimension");exit(-1);}	
-		}
+		pthread_exit(NULL);
 	}
-	if(sopt.verbose == 1){printf("# Closing thread\n");}
+	req_header[res] = '\0';
 	
-	//TODO: t_param free
-	free(t_param);
-	close(t_param->sok);
+	if(strcmp(req_header,"MAP_REQUEST\n") == 0){
+		//reply MAP_RESPONSE
+		char * resp="MAP_RESPONSE";
+		res = send(t_param->sok,resp,strlen(resp),0);
+		if(res == -1){perror("send MAP_RESPONSE");pthread_exit(NULL);}
+		//send map dimension
+		unsigned int dim[2];
+		dim[0] = sopt.map_rows;
+		dim[1] = sopt.map_cols;
+		res = send(t_param->sok,dim,sizeof(dim),0);
+		if(res == -1){perror("send map dimension");pthread_exit(NULL);}
+		//send map
+		char * matrix = get_matrix();
+		res = send(t_param->sok,matrix,sopt.map_rows*sopt.map_cols,0);
+		if(res == -1){perror("send map dimension");pthread_exit(NULL);}			
+	}else{
+		char * resp ="BAD_REQUEST";
+		res = send(t_param->sok,resp,strlen(resp),0);
+		if(res == -1){perror("send MAP_RESPONSE");pthread_exit(NULL);}
+	}
+	
+	pthread_cleanup_pop(1);
+	pthread_exit(NULL);
 }
 
 void print_server_info(){
@@ -88,6 +109,7 @@ void print_server_info(){
 }
 
 int start_listen_thread(){
+	signal(SIGPIPE,SIG_IGN);
 	int ssok,res;
 	struct sockaddr_in addr;
 	struct sockaddr_in inaddr;
@@ -177,7 +199,7 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 }
 
 int main (int argc, char **argv){
-		
+
 	// server_option initialization (default)
 	sopt.port = 0;
 	sopt.backlog = 50;
@@ -198,11 +220,13 @@ int main (int argc, char **argv){
 	/* End parser */
 	
 	//seats initialization
-	int seats[sopt.map_rows][sopt.map_cols];
-	resetSeats(sopt.map_rows,sopt.map_cols,seats);
+	matrix_init(sopt.map_rows,sopt.map_cols);
 	
 	//memmory structure initialization
 	reservation_init(sopt.map_rows*sopt.map_cols,sopt.pwd_length);
+	
+	//thing pointed to by matrix is an array of map_cols char
+	char (*matrix)[sopt.map_cols] =(char (*)[sopt.map_cols]) get_matrix();
 	
 	//debug reservation 
 	char * res_test = reservation_perform(5,NULL);
@@ -213,9 +237,9 @@ int main (int argc, char **argv){
 	
 	//debug seats
 	if(sopt.colored != 0)
-		printSeatsColored(sopt.map_rows,sopt.map_cols,seats);
+		printSeatsColored(sopt.map_rows,sopt.map_cols,matrix);
 	else
-		printSeatsSpecial(sopt.map_rows,sopt.map_cols,seats);
+		printSeatsSpecial(sopt.map_rows,sopt.map_cols,matrix);
 		
 	start_listen_thread(&sopt);	
 }
