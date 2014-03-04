@@ -20,7 +20,7 @@ Funzione per la ricerca posti di una data prenotazione
 Generazione chiavazione
 
  2 sezioni
- 	1) lunga log_10(NXM) e rappresenta l'indice nell'array di prenotazioni
+ 	1) lunga log_10(NXM+1) e rappresenta l'indice nell'array di prenotazioni
  	2) codice alfanumerico casuale (password)
  	
  	
@@ -28,8 +28,8 @@ Generazione chiavazione
 
 Protocollo comunicazione
 
-	HEADER: char req[15]
-
+	HEADER: char req[20]
+	
 Lato client:
 
 - Richiesta mappa posti
@@ -51,13 +51,10 @@ Lato server:
 	req = MAP_RESPONSE
 	int rows
 	int cols
-	char 
-	char 
-	char 
-	.
-	.
-	.
-	char
+	char...
+	char...
+	char...
+	char...
 	
 - Responso prenotazione
 	req = PRE_RESPONSE
