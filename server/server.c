@@ -12,7 +12,6 @@
 #include "reservation.h"
 #include <signal.h>
 
-#define HEADER_DIM 20
 
 //struct to store server option
 struct server_option{
@@ -74,10 +73,10 @@ void * dispatcher_thread(void * thread_parameter){
 	}
 	req_header[res] = '\0';
 	
-	if(strcmp(req_header,"MAP_REQUEST\n") == 0){
+	if(strcmp(req_header,"MAP_REQUEST") == 0){
 		//reply MAP_RESPONSE
-		char * resp="MAP_RESPONSE";
-		res = send(t_param->sok,resp,strlen(resp),0);
+		char resp[HEADER_DIM] = "MAP_RESPONSE";
+		res = send(t_param->sok,resp,HEADER_DIM,0);
 		if(res == -1){perror("send MAP_RESPONSE");pthread_exit(NULL);}
 		//send map dimension
 		unsigned int dim[2];
@@ -89,9 +88,47 @@ void * dispatcher_thread(void * thread_parameter){
 		char * matrix = get_matrix();
 		res = send(t_param->sok,matrix,sopt.map_rows*sopt.map_cols,0);
 		if(res == -1){perror("send map dimension");pthread_exit(NULL);}			
+	
+	}else if(strcmp(req_header,"PRENOTATION") == 0){
+		//reply PREN_RESPONSE
+		char resp[HEADER_DIM] = "PREN_RESPONSE";
+		res = send(t_param->sok,resp,HEADER_DIM,0);
+		if(res == -1){perror("send PREN_RESPONSE");pthread_exit(NULL);}
+		//receive number of seats
+		unsigned int seats_num;
+		res = recv(t_param->sok,&seats_num,sizeof(seats_num),0);
+		if(res == -1){perror("receive number of seats");pthread_exit(NULL);}
+		//receive seats
+		struct seat seats[seats_num];
+		res = recv(t_param->sok,seats,sizeof(seats),0);
+		if(res == -1){perror("receive seats");pthread_exit(NULL);}
+		
+		if(seats_available(seats_num,seats)){
+			occupy_seats(seats_num,seats);
+			char * chiavazione = reservation_perform(seats_num,seats);
+			//send confirmation
+			char aff[HEADER_DIM] = "PREN_AFFERMATIVE";
+			res = send(t_param->sok,aff,HEADER_DIM,0);
+			if(res == -1){perror("send PREN_AFFERMATIVE");reservation_delete(chiavazione);pthread_exit(NULL);}
+			//send chiavazione dim
+			unsigned int dim = strlen(chiavazione)+1;
+			res = send(t_param->sok,&dim,sizeof(dim),0);
+			if(res == -1){perror("send chiavazione dimension");reservation_delete(chiavazione);pthread_exit(NULL);}
+			//send chiavazione
+			res = send(t_param->sok,chiavazione,dim,0);
+			if(res == -1){perror("send chiavazione");reservation_delete(chiavazione);pthread_exit(NULL);}
+			//TODO need confirmation from client?
+		}else{
+			char neg[HEADER_DIM] = "PREN_NEGATIVE";
+			res = send(t_param->sok,neg,HEADER_DIM,0);
+			if(res == -1){perror("send PREN_NEGATIVE");pthread_exit(NULL);}
+		}	
 	}else{
-		char * resp ="BAD_REQUEST";
-		res = send(t_param->sok,resp,strlen(resp),0);
+		if(sopt.verbose == 1){
+			printf("%-20s\n",req_header);
+		}
+		char resp[HEADER_DIM] ="BAD_REQUEST";
+		res = send(t_param->sok,resp,HEADER_DIM,0);
 		if(res == -1){perror("send MAP_RESPONSE");pthread_exit(NULL);}
 	}
 	

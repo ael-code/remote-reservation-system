@@ -39,7 +39,7 @@ Lato client:
 	req = PRENOTATION
 	
 - Disdetta posti
-	req = CHECKOUT
+	req = CANCEL
 	
 - Richiesta posti assegnati
 	req = SEAT_REQUEST
@@ -57,7 +57,14 @@ Lato server:
 	char...
 	
 - Responso prenotazione
-	req = PRE_RESPONSE
+	######OK########
+	char[20]: PREN_RESPONSE              
+	char[20]: PREN_AFFERMATIVE
+	int: dim_chiavazione
+	char[dim_chi]: chiavazione
+	######NO########
+	char[20]: PREN_RESPONSE              
+	char[20]: PREN_NEGATIVE
 	
 - Responso disdetta
 	req = OUT_RESPONSE

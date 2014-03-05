@@ -1,3 +1,1 @@
-struct rss_pkg{
-	char header[15];
-};
+#define HEADER_DIM 20
