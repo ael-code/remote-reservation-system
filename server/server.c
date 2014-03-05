@@ -55,14 +55,14 @@ void * dispatcher_thread(void * thread_parameter){
 	
 	//store client ip
 	char ip[16];
-	strcpy(ip,inet_ntoa(t_param->addr.sin_addr));
+	inet_ntop(AF_INET,&t_param->addr.sin_addr,ip,sizeof(ip));
 	
 	char req_header[HEADER_DIM];
 	int res;
 	
 	// print info
 	if(sopt.verbose == 1){
-		printf("# Incoming connection\n   Ip: %s\n   Port: %d\n\n",ip,ntohs(t_param->addr.sin_port));
+		printf("# Incoming connection\n   Ip: %s\n   Port: %d\n",ip,ntohs(t_param->addr.sin_port));
 	}
 	
 	//recive header
