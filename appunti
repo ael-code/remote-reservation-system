@@ -36,7 +36,7 @@ Lato client:
 	req = MAP_REQUEST
 	
 - Prenotazione posti
-	req = PRENOTATION
+	req = RESERVATION
 	
 - Disdetta posti
 	req = CANCEL
@@ -58,13 +58,13 @@ Lato server:
 	
 - Responso prenotazione
 	######OK########
-	char[20]: PREN_RESPONSE              
-	char[20]: PREN_AFFERMATIVE
+	char[20]: RESV_RESPONSE              
+	char[20]: RESV_AFFERMATIVE
 	int: dim_chiavazione
 	char[dim_chi]: chiavazione
 	######NO########
-	char[20]: PREN_RESPONSE              
-	char[20]: PREN_NEGATIVE
+	char[20]: RESV_RESPONSE              
+	char[20]: RESV_NEGATIVE
 	
 - Responso disdetta
 	req = OUT_RESPONSE
