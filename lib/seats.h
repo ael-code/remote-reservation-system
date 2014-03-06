@@ -10,20 +10,22 @@ struct seat{
 };
 
 /*
-* Print Seats like matrix of integers
+* Print SeatsMap like matrix of integers
 */
-int printSeats(int rows, int cols,char mat[rows][cols]);
+void print_SeatsMap(int rows, int cols,char mat[rows][cols]);
+
 /*
-* Print Seats like matrix of cels |__|
+* Print SeatsMap like matrix of cels |__|
 */
-int printSeatsSpecial(int rows, int cols,char mat[rows][cols]);
+void print_SeatsMap_Special(int rows, int cols,char mat[rows][cols]);
+
 /*
-* Print Seats like matrix of colored cels
+* Print SeatsMap like matrix of colored cels
 */
-int printSeatsColored(int rows, int cols,char mat[rows][cols]);
+void print_SeatsMap_Colored(int rows, int cols,char mat[rows][cols]);
 /*
-* put all seats to 0;
+* Print SeatsArray
 */
-int resetSeats(int rows, int cols, char mat[rows][cols]);
+void print_SeatsArray(unsigned int num,struct seat * seats);
 
 #endif

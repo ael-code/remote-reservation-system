@@ -4,9 +4,9 @@
 #include "conversion.h"
 
 /*
-* Print Seats like matrix of integers
+* Print SeatsMap like matrix of integers
 */
-int printSeats(int rows, int cols,char mat[rows][cols]){
+void print_SeatsMap(int rows, int cols,char mat[rows][cols]){
 	int i,j;
 	for(i=0; i<rows; i++){
 		for(j=0; j<cols; j++){
@@ -17,9 +17,9 @@ int printSeats(int rows, int cols,char mat[rows][cols]){
 }
 
 /*
-* Print Seats like matrix of cels |__|
+* Print SeatsMap like matrix of cels |__|
 */
-int printSeatsSpecial(int rows, int cols,char mat[rows][cols]){
+void print_SeatsMap_Special(int rows, int cols,char mat[rows][cols]){
 	int i,j;
 	int char_num = int_to_charc(rows-1);
 	
@@ -48,9 +48,9 @@ int printSeatsSpecial(int rows, int cols,char mat[rows][cols]){
 }
 
 /*
-* Print Seats like matrix of colored cels
+* Print SeatsMap like matrix of colored cels
 */
-int printSeatsColored(int rows, int cols,char mat[rows][cols]){
+void print_SeatsMap_Colored(int rows, int cols,char mat[rows][cols]){
 	int i,j;
 	int char_num = int_to_charc(rows-1);
 	
@@ -80,12 +80,16 @@ int printSeatsColored(int rows, int cols,char mat[rows][cols]){
 }
 
 /*
-* put all seats to 0;
+* Print SeatsArray
 */
-int resetSeats(int rows, int cols, char mat[rows][cols]){
-	int i,j;
-	for(i=0; i<rows; i++)
-		for(j=0; j<cols; j++){
-			mat[i][j]=0;
-		}
+void print_SeatsArray(unsigned int num,struct seat * seats){
+	if(num < 1 || seats == NULL) return;
+	
+	struct seat * punt = seats;
+	while((punt-seats) < num){
+		printf("[%u,%u] ",punt->row,punt->col);
+		punt++;
+	}
+	puts("");
 }
+

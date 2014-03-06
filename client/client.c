@@ -11,7 +11,7 @@
 #include "../lib/rrs_protocol.h"
 #include "../lib/seats.h"
 
-
+#define LINE_DIM 100
 
 struct client_option{
 	int server_port;  					// port of the server to contact
@@ -30,31 +30,40 @@ void request_map(int sok){
 	res = send(sok,req_header,HEADER_DIM,0);
 	if(res == -1){perror("send");exit(-1);}
 	
-	char res_header[HEADER_DIM];
 	//receive response header
+	char res_header[HEADER_DIM];
 	res = recv(sok,res_header,HEADER_DIM,0);
-	if(res == -1){perror("recv header");exit(-1);};
+	if(res == -1){perror("recv header");exit(-1);}
+	res_header[HEADER_DIM-1] = '\0';
 	if(strcmp(res_header,"MAP_RESPONSE")!= 0){
-		printf("BAD RESPONSE: %-*s",HEADER_DIM,res_header);
+		printf("BAD RESPONSE: %-*s\n",HEADER_DIM,res_header);
 		exit(-1);
 	}
 	
 	//receive map dimension
 	unsigned int dim[2];
 	res = recv(sok,dim,sizeof(dim),0);
-	if(res == -1){perror("recv dimension");exit(-1);};
+	if(res < sizeof(dim)){
+		if(res == -1)perror("recv dimension");
+		else puts("Error: received invalid map dimension");
+		exit(-1);
+	}
 	
 	//receive map
 	char map[dim[0]][dim[1]];
 	res = recv(sok,map,dim[0]*dim[1],0);
-	if(res == -1){perror("recv map");exit(-1);};
+	if(res < dim[0]*dim[1]){
+		if(res == -1)perror("recv map");
+		else puts("Received invalid map");
+		exit(-1);
+	}
 	
 	close(sok);
 	
 	if(opt.colored != 0)
-		printSeatsColored(dim[0],dim[1],map);
+		print_SeatsMap_Colored(dim[0],dim[1],map);
 	else
-		printSeatsSpecial(dim[0],dim[1],map);
+		print_SeatsMap_Special(dim[0],dim[1],map);
 }
 
 void reservation(int sok){
@@ -68,19 +77,25 @@ void reservation(int sok){
 	//receive response header
 	char res_header[HEADER_DIM];
 	res = recv(sok,res_header,HEADER_DIM,0);
-	if(res == -1){perror("recv header");exit(-1);};
+	if(res == -1){perror("recv header");exit(-1);}
+	res_header[HEADER_DIM-1] = '\0';
 	if(strcmp(res_header,"RESV_RESPONSE")!= 0){
-		printf("BAD RESPONSE: %-*s",HEADER_DIM,res_header);
+		printf("BAD RESPONSE: %-*s\n",HEADER_DIM,res_header);
 		exit(-1);
 	}
 	
-	//insertion of seat
+	/* Seats input */
+	
+	char line[LINE_DIM];
 	unsigned int seats_num;
 	do{
 		printf("Insert the number of seats you want to reserve: ");
 		fflush(stdout);
-		res = scanf("%u",&seats_num);
+		fgets(line,LINE_DIM,stdin);
+		res = sscanf(line,"%u\n",&seats_num);
 	}while(res < 1);
+	
+	if(seats_num == 0)exit(0);
 	
 	struct seat seats[seats_num];
 	int i=0;
@@ -88,10 +103,52 @@ void reservation(int sok){
 		do{
 			printf("Insert row and cols for seats[%d]: ",i);
 			fflush(stdout);
-			res = scanf("%u %u",&seats[i].row,&seats[i].col);
+			fgets(line,LINE_DIM,stdin);
+			res = sscanf(line,"%u %u",&seats[i].row,&seats[i].col);
 		}while(res<2);
 		i++;
 	}
+	
+	//send seats num
+	res = send(sok,&seats_num,sizeof(seats_num),0);
+	if(res == -1){perror("send");exit(-1);}
+	//send seats
+	res = send(sok,seats,sizeof(seats),0);
+	if(res == -1){perror("send");exit(-1);}
+
+	//receive confirmation
+	char confirmation[HEADER_DIM];
+	res = recv(sok,confirmation,HEADER_DIM,0);
+	if(res == -1){perror("recv confirmation");exit(-1);}
+	res_header[HEADER_DIM-1] = '\0';
+	
+	//exit if response is not AFFERMATIVE
+	if(strcmp(confirmation,"RESV_AFFERMATIVE")!= 0){
+		if(strcmp(confirmation,"RESV_NEGATIVE") == 0)
+			puts(" [NO] Reservation denied from server");
+		else printf("BAD RESPONSE: %-*s\n",HEADER_DIM,confirmation);
+		exit(-1);
+	}
+	
+	//recive chiavazione_dim  (include '\0')
+	unsigned int key_dim;
+	res = recv(sok,&key_dim,sizeof(key_dim),0);
+	if(res < sizeof(key_dim)){
+		if(res == -1)perror("recv key dimension");
+		else puts("Received invalid key dimension");
+		exit(-1);
+	}
+	
+	//recive chiavazione
+	char chiavazione[key_dim];
+	res = recv(sok,chiavazione,sizeof(chiavazione),0);
+	if(res < sizeof(chiavazione)){
+		if(res == -1)perror("recv key");
+		else puts("Received invalid chiavazione");
+		exit(-1);
+	}
+	
+	printf(" [OK] Reservation complete: %s\n",chiavazione);
 }
 
 int connect_to_server(){
@@ -171,8 +228,8 @@ int main (int argc, char **argv){
 	int sok = connect_to_server();
 	if(opt.reserve)
 		reservation(sok);
-	//else
-	//	request_map(sok);
+	else
+		request_map(sok);
 		
 	exit(0);	
 }

@@ -37,8 +37,11 @@ struct server_option sopt;
 
 //thread cleanup
 void clean_thread_param(void * thread_parameter){
-	if(sopt.verbose == 1){printf("# Closing thread\n");}
+	struct thread_param * t_param = (struct thread_param *) thread_parameter;
+	close(t_param->sok);	
 	free(thread_parameter);
+	if(sopt.verbose == 1){printf("# Closing thread\n");}
+	
 }
 
 /*
@@ -111,6 +114,11 @@ void * dispatcher_thread(void * thread_parameter){
 			pthread_exit(NULL);
 		}
 		
+		//debug:
+		printf("%u\n",seats_num);
+		print_SeatsArray(seats_num,seats);
+		
+		
 		if(seats_available(seats_num,seats)){
 			occupy_seats(seats_num,seats);
 			char * chiavazione = reservation_perform(seats_num,seats);
@@ -119,13 +127,17 @@ void * dispatcher_thread(void * thread_parameter){
 			res = send(t_param->sok,aff,HEADER_DIM,0);
 			if(res == -1){perror("send RESV_AFFERMATIVE");reservation_delete(chiavazione);pthread_exit(NULL);}
 			//send chiavazione dim
-			unsigned int dim = strlen(chiavazione)+1;
-			res = send(t_param->sok,&dim,sizeof(dim),0);
+			unsigned int key_dim = strlen(chiavazione)+1;
+			res = send(t_param->sok,&key_dim,sizeof(key_dim),0);
 			if(res == -1){perror("send chiavazione dimension");reservation_delete(chiavazione);pthread_exit(NULL);}
 			//send chiavazione
-			res = send(t_param->sok,chiavazione,dim,0);
-			if(res == -1){perror("send chiavazione");reservation_delete(chiavazione);pthread_exit(NULL);}
-			//TODO need confirmation from client?
+			res = send(t_param->sok,chiavazione,key_dim,0);
+			if(res < key_dim){
+				if(res == -1)perror("send chiavazione");
+				else puts("Error: sending chiavazione failed");
+				reservation_delete(chiavazione);
+				pthread_exit(NULL);
+			}
 		}else{
 			char neg[HEADER_DIM] = "RESV_NEGATIVE";
 			res = send(t_param->sok,neg,HEADER_DIM,0);
@@ -282,9 +294,9 @@ int main (int argc, char **argv){
 	
 	//debug seats
 	if(sopt.colored != 0)
-		printSeatsColored(sopt.map_rows,sopt.map_cols,matrix);
+		print_SeatsMap_Colored(sopt.map_rows,sopt.map_cols,matrix);
 	else
-		printSeatsSpecial(sopt.map_rows,sopt.map_cols,matrix);
+		print_SeatsMap_Special(sopt.map_rows,sopt.map_cols,matrix);
 		
 	start_listen_thread();	
 }
