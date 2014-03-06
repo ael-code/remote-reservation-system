@@ -1,12 +1,5 @@
 #ifndef RESERVATION_H
 #define RESERVATION_H
-/*
-*	row and coloumn of a seat
-*/
-struct seat{
-	unsigned int row;
-	unsigned int col;
-};
 
 /*
 *	this is the unit that rapresent one reservation in reservation array

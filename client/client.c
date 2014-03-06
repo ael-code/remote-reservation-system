@@ -17,6 +17,7 @@ struct client_option{
 	int server_port;  					// port of the server to contact
 	char * server_ip;  					// ip of the server to contact
 	char colored;							// 0 = false; 1=true; dafault 0
+	char reserve;							// 0 = false; 1=true; dafault 0
 };
 
 struct client_option opt;
@@ -34,7 +35,7 @@ void request_map(int sok){
 	res = recv(sok,res_header,HEADER_DIM,0);
 	if(res == -1){perror("recv header");exit(-1);};
 	if(strcmp(res_header,"MAP_RESPONSE")!= 0){
-		printf("BAD RESPONSE: %s",res_header);
+		printf("BAD RESPONSE: %-*s",HEADER_DIM,res_header);
 		exit(-1);
 	}
 	
@@ -48,10 +49,49 @@ void request_map(int sok){
 	res = recv(sok,map,dim[0]*dim[1],0);
 	if(res == -1){perror("recv map");exit(-1);};
 	
+	close(sok);
+	
 	if(opt.colored != 0)
 		printSeatsColored(dim[0],dim[1],map);
 	else
 		printSeatsSpecial(dim[0],dim[1],map);
+}
+
+void reservation(int sok){
+	char req_header[HEADER_DIM] = "RESERVATION";
+	int res;
+	
+	//send request
+	res = send(sok,req_header,HEADER_DIM,0);
+	if(res == -1){perror("send");exit(-1);}
+	
+	//receive response header
+	char res_header[HEADER_DIM];
+	res = recv(sok,res_header,HEADER_DIM,0);
+	if(res == -1){perror("recv header");exit(-1);};
+	if(strcmp(res_header,"RESV_RESPONSE")!= 0){
+		printf("BAD RESPONSE: %-*s",HEADER_DIM,res_header);
+		exit(-1);
+	}
+	
+	//insertion of seat
+	unsigned int seats_num;
+	do{
+		printf("Insert the number of seats you want to reserve: ");
+		fflush(stdout);
+		res = scanf("%u",&seats_num);
+	}while(res < 1);
+	
+	struct seat seats[seats_num];
+	int i=0;
+	while(i < seats_num){
+		do{
+			printf("Insert row and cols for seats[%d]: ",i);
+			fflush(stdout);
+			res = scanf("%u %u",&seats[i].row,&seats[i].col);
+		}while(res<2);
+		i++;
+	}
 }
 
 int connect_to_server(){
@@ -77,6 +117,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 		case 'c':
 			opt.colored = 1;
 			break;
+		case 'r':
+			opt.reserve = 1;
+			break;	
 		case ARGP_KEY_ARG:
 			switch (state->arg_num){
 				case 0:
@@ -115,6 +158,7 @@ int main (int argc, char **argv){
 	/*Parser section*/
 	struct argp_option options[] = { 
 		{"colored-output", 'c', 0, 0,"Colored output"},
+		{"reserve", 'r', 0, 0,"Reserve some seats"},
 		{ 0 }
 	};
 	struct argp argp = { options, parse_opt, "hostname port", 0 };
@@ -123,8 +167,12 @@ int main (int argc, char **argv){
 	
 	printf("Server: %s\nPort:%d\n",opt.server_ip,opt.server_port);
 	
+	
 	int sok = connect_to_server();
-	request_map(sok);
+	if(opt.reserve)
+		reservation(sok);
+	//else
+	//	request_map(sok);
 		
 	exit(0);	
 }

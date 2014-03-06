@@ -1,7 +1,4 @@
-#ifndef MATRIX_H
-#define MATRIX_H
-
-#include "reservation.h"
+#include "../lib/seats.h"
 
 /*
 *	Allocate memory and set dimension for mat
@@ -17,5 +14,3 @@ int seats_available(unsigned int num, struct seat * seats);
 *	Set all cells in "seats".
 */
 void occupy_seats(unsigned int num, struct seat * seats);
-
-#endif

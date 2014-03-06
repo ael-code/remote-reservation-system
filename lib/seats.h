@@ -1,3 +1,13 @@
+#ifndef SEATS_H
+#define SEATS_H
+
+/*
+*	row and coloumn of a seat
+*/
+struct seat{
+	unsigned int row;
+	unsigned int col;
+};
 
 /*
 * Print Seats like matrix of integers
@@ -15,3 +25,5 @@ int printSeatsColored(int rows, int cols,char mat[rows][cols]);
 * put all seats to 0;
 */
 int resetSeats(int rows, int cols, char mat[rows][cols]);
+
+#endif

@@ -65,7 +65,7 @@ void * dispatcher_thread(void * thread_parameter){
 	}
 	
 	//recive header
-	res = recv(t_param->sok,(void *)req_header,HEADER_DIM,0);
+	res = recv(t_param->sok,req_header,HEADER_DIM,0);
 	
 	if(res == -1){
 		printf("Error: client sok\n");
@@ -89,27 +89,37 @@ void * dispatcher_thread(void * thread_parameter){
 		res = send(t_param->sok,matrix,sopt.map_rows*sopt.map_cols,0);
 		if(res == -1){perror("send map dimension");pthread_exit(NULL);}			
 	
-	}else if(strcmp(req_header,"PRENOTATION") == 0){
+	}else if(strcmp(req_header,"RESERVATION") == 0){
 		//reply PREN_RESPONSE
-		char resp[HEADER_DIM] = "PREN_RESPONSE";
+		char resp[HEADER_DIM] = "RESV_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
-		if(res == -1){perror("send PREN_RESPONSE");pthread_exit(NULL);}
+		if(res == -1){perror("send RESV_RESPONSE");pthread_exit(NULL);}
+		if(sopt.verbose)puts("sended resv_response");
 		//receive number of seats
 		unsigned int seats_num;
 		res = recv(t_param->sok,&seats_num,sizeof(seats_num),0);
 		if(res == -1){perror("receive number of seats");pthread_exit(NULL);}
+		if(sopt.verbose)printf("recived seats_num %u\n",seats_num);	
+		
+		/*
+		*	Se il client chiude la connessione durante la recv del seats_num,
+		*  la recv va a buon fine lo stesso e si verifica un segfault alla recv successiva
+		*/
+		
+		
 		//receive seats
 		struct seat seats[seats_num];
 		res = recv(t_param->sok,seats,sizeof(seats),0);
 		if(res == -1){perror("receive seats");pthread_exit(NULL);}
+		if(sopt.verbose)puts("received seats");
 		
 		if(seats_available(seats_num,seats)){
 			occupy_seats(seats_num,seats);
 			char * chiavazione = reservation_perform(seats_num,seats);
 			//send confirmation
-			char aff[HEADER_DIM] = "PREN_AFFERMATIVE";
+			char aff[HEADER_DIM] = "RESV_AFFERMATIVE";
 			res = send(t_param->sok,aff,HEADER_DIM,0);
-			if(res == -1){perror("send PREN_AFFERMATIVE");reservation_delete(chiavazione);pthread_exit(NULL);}
+			if(res == -1){perror("send RESV_AFFERMATIVE");reservation_delete(chiavazione);pthread_exit(NULL);}
 			//send chiavazione dim
 			unsigned int dim = strlen(chiavazione)+1;
 			res = send(t_param->sok,&dim,sizeof(dim),0);
@@ -119,13 +129,13 @@ void * dispatcher_thread(void * thread_parameter){
 			if(res == -1){perror("send chiavazione");reservation_delete(chiavazione);pthread_exit(NULL);}
 			//TODO need confirmation from client?
 		}else{
-			char neg[HEADER_DIM] = "PREN_NEGATIVE";
+			char neg[HEADER_DIM] = "RESV_NEGATIVE";
 			res = send(t_param->sok,neg,HEADER_DIM,0);
-			if(res == -1){perror("send PREN_NEGATIVE");pthread_exit(NULL);}
+			if(res == -1){perror("send RESV_NEGATIVE");pthread_exit(NULL);}
 		}	
 	}else{
 		if(sopt.verbose == 1){
-			printf("%-20s\n",req_header);
+			printf("BAD REQUEST: %-20s\n",req_header);
 		}
 		char resp[HEADER_DIM] ="BAD_REQUEST";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
@@ -278,5 +288,5 @@ int main (int argc, char **argv){
 	else
 		printSeatsSpecial(sopt.map_rows,sopt.map_cols,matrix);
 		
-	start_listen_thread(&sopt);	
+	start_listen_thread();	
 }
