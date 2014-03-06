@@ -66,12 +66,10 @@ void * dispatcher_thread(void * thread_parameter){
 	
 	//recive header
 	res = recv(t_param->sok,req_header,HEADER_DIM,0);
+	if(res == -1){perror("recive request header");pthread_exit(NULL);}
 	
-	if(res == -1){
-		printf("Error: client sok\n");
-		pthread_exit(NULL);
-	}
-	req_header[res] = '\0';
+	req_header[HEADER_DIM-1] = '\0';
+	
 	
 	if(strcmp(req_header,"MAP_REQUEST") == 0){
 		//reply MAP_RESPONSE
@@ -94,24 +92,24 @@ void * dispatcher_thread(void * thread_parameter){
 		char resp[HEADER_DIM] = "RESV_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
 		if(res == -1){perror("send RESV_RESPONSE");pthread_exit(NULL);}
-		if(sopt.verbose)puts("sended resv_response");
+		
 		//receive number of seats
-		unsigned int seats_num;
+		unsigned int seats_num = 0;
 		res = recv(t_param->sok,&seats_num,sizeof(seats_num),0);
-		if(res == -1){perror("receive number of seats");pthread_exit(NULL);}
-		if(sopt.verbose)printf("recived seats_num %u\n",seats_num);	
-		
-		/*
-		*	Se il client chiude la connessione durante la recv del seats_num,
-		*  la recv va a buon fine lo stesso e si verifica un segfault alla recv successiva
-		*/
-		
+		if(res < sizeof(seats_num)){
+			if(res == -1)perror("receive number of seats");
+			else puts("Error: recived invalid seats num");
+			pthread_exit(NULL);
+		}
 		
 		//receive seats
 		struct seat seats[seats_num];
 		res = recv(t_param->sok,seats,sizeof(seats),0);
-		if(res == -1){perror("receive seats");pthread_exit(NULL);}
-		if(sopt.verbose)puts("received seats");
+		if(res < sizeof(seats)){
+			if(res == -1)perror("receive seats");
+			else puts("Error: mismatch of seats number recived");
+			pthread_exit(NULL);
+		}
 		
 		if(seats_available(seats_num,seats)){
 			occupy_seats(seats_num,seats);
