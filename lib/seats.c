@@ -14,6 +14,7 @@ void print_SeatsMap(int rows, int cols,char mat[rows][cols]){
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 /*
@@ -45,6 +46,7 @@ void print_SeatsMap_Special(int rows, int cols,char mat[rows][cols]){
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 /*
@@ -77,6 +79,7 @@ void print_SeatsMap_Colored(int rows, int cols,char mat[rows][cols]){
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 /*
@@ -90,6 +93,6 @@ void print_SeatsArray(unsigned int num,struct seat * seats){
 		printf("[%u,%u] ",punt->row,punt->col);
 		punt++;
 	}
-	puts("");
+	printf("\n");
 }
 

@@ -177,7 +177,6 @@ void * dispatcher_thread(void * thread_parameter){
 }
 
 void print_server_info(){
-	printf("\n");
 	if(sopt.colored == 1){
 		printf("\e[1;32mServer port:\e[0;34m %d\e[0m\n\e[1;32mBacklog:\e[0;34m %d\e[0m\n\e[1;32mRows:\e[0;34m %d\e[0m\n\e[1;32mCols:\e[0;34m %d\e[0m\n\e[1;32mpwd_length:\e[0;34m %d\e[0m\n\n",sopt.port,sopt.backlog,sopt.map_rows,sopt.map_cols,sopt.pwd_length);
 	}else{
