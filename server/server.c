@@ -6,11 +6,11 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <signal.h>
 #include "matrix.h"
 #include "../lib/rrs_protocol.h"
 #include "../lib/seats.h"
 #include "reservation.h"
-#include <signal.h>
 
 
 //struct to store server option
@@ -28,6 +28,7 @@ struct server_option{
 struct thread_param{
 	int sok;
 	struct sockaddr_in addr;
+	char ip[16];
 };
 
 
@@ -38,39 +39,37 @@ struct server_option sopt;
 //thread cleanup
 void clean_thread_param(void * thread_parameter){
 	struct thread_param * t_param = (struct thread_param *) thread_parameter;
-	close(t_param->sok);	
+	close(t_param->sok);
+	if(sopt.verbose == 1){
+		(sopt.colored)?printf("\e[1;91m<-\e[0m "):printf("<- ");
+		printf("Closed    %s:%d\n",t_param->ip,ntohs(t_param->addr.sin_port));
+	}
 	free(thread_parameter);
-	if(sopt.verbose == 1){printf("# Closing thread\n");}
-	
 }
 
 /*
 *	Thread to menage incoming connetcions
 */
-
 void * dispatcher_thread(void * thread_parameter){
-	
+	int res;
 	struct thread_param * t_param = (struct thread_param *) thread_parameter;
+	
+	//store client ip
+	inet_ntop(AF_INET,&t_param->addr.sin_addr,t_param->ip,sizeof(t_param->ip));
 	
 	//routine to cleanup thread_parameter called on pthread_exit
 	pthread_cleanup_push(clean_thread_param,thread_parameter);
 	
-	//store client ip
-	char ip[16];
-	inet_ntop(AF_INET,&t_param->addr.sin_addr,ip,sizeof(ip));
-	
-	char req_header[HEADER_DIM];
-	int res;
-	
 	// print info
 	if(sopt.verbose == 1){
-		printf("# Incoming connection\n   Ip: %s\n   Port: %d\n",ip,ntohs(t_param->addr.sin_port));
+		(sopt.colored)?printf("\e[1;92m->\e[0m "):printf("-> ");
+		printf("Connected %s:%d\n",t_param->ip,ntohs(t_param->addr.sin_port));
 	}
 	
 	//recive header
+	char req_header[HEADER_DIM];
 	res = recv(t_param->sok,req_header,HEADER_DIM,0);
 	if(res == -1){perror("recive request header");pthread_exit(NULL);}
-	
 	req_header[HEADER_DIM-1] = '\0';
 	
 	
@@ -143,6 +142,29 @@ void * dispatcher_thread(void * thread_parameter){
 			res = send(t_param->sok,neg,HEADER_DIM,0);
 			if(res == -1){perror("send RESV_NEGATIVE");pthread_exit(NULL);}
 		}	
+	}else if(strcmp(req_header,"CANCEL") == 0){
+		//reply with response
+		char resp[HEADER_DIM] = "CANC_RESPONSE";
+		res = send(t_param->sok,resp,HEADER_DIM,0);
+		if(res == -1){perror("send CANC_RESPONSE");pthread_exit(NULL);}
+		//receive chiavazione
+		unsigned int chiav_dim = get_chiavazione_length(sopt.map_rows*sopt.map_cols-1,sopt.pwd_length);
+		char chiavazione[chiav_dim+1];
+		res = recv(t_param->sok,chiavazione,sizeof(chiavazione),0);
+		if(res == -1){perror("receive chiavazione");pthread_exit(NULL);}
+		
+		
+		if(res < sizeof(chiavazione) || reservation_delete(chiavazione)){
+			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
+			res = send(t_param->sok,confirm,HEADER_DIM,0);
+			if(res == -1){perror("send CANCEL NEGATIVE");pthread_exit(NULL);}
+		}else{
+			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
+			res = send(t_param->sok,confirm,HEADER_DIM,0);
+			if(res == -1){perror("send CANCEL POSITIVE");pthread_exit(NULL);}
+		}
+		
+		
 	}else{
 		if(sopt.verbose == 1){
 			printf("BAD REQUEST: %-20s\n",req_header);
@@ -284,13 +306,6 @@ int main (int argc, char **argv){
 	
 	//thing pointed to by matrix is an array of map_cols char
 	char (*matrix)[sopt.map_cols] =(char (*)[sopt.map_cols]) get_matrix();
-	
-	//debug reservation 
-	char * res_test = reservation_perform(5,NULL);
-	printf("%s\n",res_test);
-	printf("%d\n",reservation_delete(res_test));
-	printf("%d\n",reservation_delete(res_test));
-	
 	
 	//debug seats
 	if(sopt.colored != 0)

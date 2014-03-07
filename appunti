@@ -23,8 +23,6 @@ Generazione chiavazione
  	1) lunga log_10(NXM+1) e rappresenta l'indice nell'array di prenotazioni
  	2) codice alfanumerico casuale (password)
  	
- 	
-
 
 Protocollo comunicazione
 
@@ -36,7 +34,7 @@ Lato client:
 	req = MAP_REQUEST
 	
 - Prenotazione posti
-	req = RESERVATION
+	req = PRENOTATION
 	
 - Disdetta posti
 	req = CANCEL
@@ -49,12 +47,6 @@ Lato server:
 - Responso mappa posti
 	
 	req = MAP_RESPONSE
-	int rows
-	int cols
-	char...
-	char...
-	char...
-	char...
 	
 - Responso prenotazione
 	######OK########
@@ -67,7 +59,7 @@ Lato server:
 	char[20]: RESV_NEGATIVE
 	
 - Responso disdetta
-	req = OUT_RESPONSE
+	req = CANC_RESPONSE
 	
 - Responso posti assegnati
 	req = SEAT_RESPONSE

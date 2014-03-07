@@ -8,14 +8,15 @@
 static char * seed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /*
-* Generate a chiavazione with index "index" and a password length of "pwd_length"
+* Generate a chiavazione with index "index" 
+* and a password length of "pwd_length"
 */
 char * chiavazione_gen(unsigned int index, unsigned int max_index ,unsigned int pwd_length){
-	pwd_length++; // include /0
+	pwd_length++; // include '\0'
 	int length = strlen(seed);
 	unsigned int i;
 	char pwd[pwd_length];
-	int index_max_length = int_to_charc(max_index);
+	unsigned int index_max_length = int_to_charc(max_index);
 	
 	char * result;
 	
@@ -48,7 +49,7 @@ char * chiavazione_gen(unsigned int index, unsigned int max_index ,unsigned int 
 /*
 * Return an int corresponding to the index of "chiavazione"
 */
-int get_chiavazione_index(char * chiavazione, unsigned int max_index){
+unsigned int get_chiavazione_index(char * chiavazione, unsigned int max_index){
 	int index_max_length = int_to_charc(max_index);
 	char tbuff[index_max_length+1];
 	int i;
@@ -57,6 +58,14 @@ int get_chiavazione_index(char * chiavazione, unsigned int max_index){
 	}
 	tbuff[i]='\0';
 	return strtol(tbuff,NULL,10);
+}
+
+/*
+*	Return the length for a chiavazione 
+*	whith this max_inex and this pwd length
+*/
+unsigned int get_chiavazione_length(unsigned int max_index,unsigned int pwd_length){
+	return int_to_charc(max_index)+pwd_length;
 }
 
 /*
