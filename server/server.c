@@ -113,14 +113,13 @@ void * dispatcher_thread(void * thread_parameter){
 			pthread_exit(NULL);
 		}
 		
-		//debug:
-		printf("%u\n",seats_num);
-		print_SeatsArray(seats_num,seats);
+		//DEBUG:
+		//printf("%u\n",seats_num);
+		//print_SeatsArray(seats_num,seats);
 		
+		char * chiavazione = reservation_perform(seats_num,seats);
 		
-		if(seats_available(seats_num,seats)){
-			occupy_seats(seats_num,seats);
-			char * chiavazione = reservation_perform(seats_num,seats);
+		if(chiavazione != NULL){
 			//send confirmation
 			char aff[HEADER_DIM] = "RESV_AFFERMATIVE";
 			res = send(t_param->sok,aff,HEADER_DIM,0);
@@ -141,7 +140,8 @@ void * dispatcher_thread(void * thread_parameter){
 			char neg[HEADER_DIM] = "RESV_NEGATIVE";
 			res = send(t_param->sok,neg,HEADER_DIM,0);
 			if(res == -1){perror("send RESV_NEGATIVE");pthread_exit(NULL);}
-		}	
+		}
+		
 	}else if(strcmp(req_header,"CANCEL") == 0){
 		//reply with response
 		char resp[HEADER_DIM] = "CANC_RESPONSE";
@@ -153,17 +153,15 @@ void * dispatcher_thread(void * thread_parameter){
 		res = recv(t_param->sok,chiavazione,sizeof(chiavazione),0);
 		if(res == -1){perror("receive chiavazione");pthread_exit(NULL);}
 		
-		
 		if(res < sizeof(chiavazione) || reservation_delete(chiavazione)){
 			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
 			if(res == -1){perror("send CANCEL NEGATIVE");pthread_exit(NULL);}
 		}else{
-			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
+			char confirm[HEADER_DIM] = "CANC_AFFERMATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
 			if(res == -1){perror("send CANCEL POSITIVE");pthread_exit(NULL);}
 		}
-		
 		
 	}else{
 		if(sopt.verbose == 1){
@@ -225,12 +223,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 	switch (key){
 		case 'p':
 			temp = strtol(arg,NULL,10);
-			if(temp < 1){
-				printf("ERROR: \"%s\" is not a valid port number\n",arg);
-				exit(1);
-			}else{
-				sopt.port = atoi(arg);
-			}break;
+			if(temp < 1) argp_failure(state,1,0,"ERROR \"%s\" is not a valid port number\n",arg);
+			sopt.port = atoi(arg);
+			break;
 		case 'c':
 			sopt.colored = 1;
 			break;
@@ -239,32 +234,24 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			break;
 		case 's':
 			temp = strtol(arg,NULL,10);
-			if(temp < 1){
-				printf("ERROR: \"%s\" is not a valid pwd length\n",arg);
-				exit(1);
-			}else{
-				sopt.pwd_length = temp;
-			}break;
+			if(temp < 1)argp_failure(state,1,0,"ERROR \"%s\" is not a valid pwd length\n",arg);
+			sopt.pwd_length = temp;
+			break;
 		case ARGP_KEY_ARG:
 			switch (state->arg_num){
 				case 0:
 					temp = strtol(arg,NULL,10);
-					if(temp < 1){
-						printf("ERROR: \"%s\" is not a valid rows number\n",arg);
-						exit(1);
-					}else{
-						sopt.map_rows = temp;
-					}break;
+					if(temp < 1)argp_failure(state,1,0,"ERROR \"%s\" is not a valid rows number\n",arg);
+					sopt.map_rows = temp;
+					break;
 				case 1:
 					temp = strtol(arg,NULL,10);
-					if(temp < 1){
-						printf("ERROR: \"%s\" is not a valid cols number\n",arg);
-						exit(1);
-					}else{
-						sopt.map_cols = temp;
-					}break;
+					if(temp < 1)argp_failure(state,1,0,"ERROR \"%s\" is not a valid cols number\n",arg);
+					sopt.map_cols = temp;
+					break;
 			}break;
 		case ARGP_KEY_END:
+			printf ("\n");
 			if(state->arg_num < 2){
 				printf("ERROR: too few arguments\n");
 				argp_usage(state);

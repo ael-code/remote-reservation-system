@@ -58,17 +58,33 @@ int seats_available2(unsigned int num, struct seat * seats){
 */
 
 /*
-*	Set all cells in "seats".
+*	Set all cells in "seats" at 1.
 */
 void occupy_seats(unsigned int num, struct seat * seats){
 	//control if parameters are good
-	if(num < 1 || seats == NULL){puts("bad parameter in occupy");exit(-1);}
+	if(num < 1 || seats == NULL){puts("bad parameter in occupy_seats()");exit(-1);}
 	char (*matrix)[cols] =(char (*)[cols]) mat;
 	struct seat * punt = seats;
 	while( (punt-seats) < num ){
 		//check bounds
-		if(punt->row >= rows || punt -> col >= cols){puts("bad parameter in occupy");exit(-1);}
+		if(punt->row >= rows || punt -> col >= cols){puts("bad parameter in occupy_seats()");exit(-1);}
 		matrix[punt->row][punt->col] = 1;
+		punt++;
+	}
+}
+
+/*
+*	Set all cells in "seats" at 0.
+*/
+void free_seats(unsigned int num, struct seat * seats){
+	//control if parameters are good
+	if(num < 1 || seats == NULL){puts("bad parameter in free_seats()");exit(-1);}
+	char (*matrix)[cols] =(char (*)[cols]) mat;
+	struct seat * punt = seats;
+	while( (punt-seats) < num ){
+		//check bounds
+		if(punt->row >= rows || punt -> col >= cols){puts("bad parameter in free_seats()");exit(-1);}
+		matrix[punt->row][punt->col] = 0;
 		punt++;
 	}
 }

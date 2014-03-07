@@ -15,3 +15,7 @@ int seats_available2(unsigned int num, struct seat * seats);
 *	Set all cells in "seats".
 */
 void occupy_seats(unsigned int num, struct seat * seats);
+/*
+*	Set all cells in "seats" at 0.
+*/
+void free_seats(unsigned int num, struct seat * seats);

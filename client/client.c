@@ -18,6 +18,9 @@ struct client_option{
 	char * server_ip;  					// ip of the server to contact
 	char colored;							// 0 = false; 1=true; dafault 0
 	char reserve;							// 0 = false; 1=true; dafault 0
+	char verbose;							// 0 = false; 1=true; dafault 0
+	char delete;							// 0 = false; 1=true; dafault 0
+	char * chiavazione;
 };
 
 struct client_option opt;
@@ -117,16 +120,16 @@ void reservation(int sok){
 	if(res == -1){perror("send");exit(-1);}
 
 	//receive confirmation
-	char confirmation[HEADER_DIM];
-	res = recv(sok,confirmation,HEADER_DIM,0);
-	if(res == -1){perror("recv confirmation");exit(-1);}
+	char confirm[HEADER_DIM];
+	res = recv(sok,confirm,HEADER_DIM,0);
+	if(res == -1){perror("recv confirm");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
 	
 	//exit if response is not AFFERMATIVE
-	if(strcmp(confirmation,"RESV_AFFERMATIVE")!= 0){
-		if(strcmp(confirmation,"RESV_NEGATIVE") == 0)
+	if(strcmp(confirm,"RESV_AFFERMATIVE")!= 0){
+		if(strcmp(confirm,"RESV_NEGATIVE") == 0)
 			puts(" [NO] Reservation denied from server");
-		else printf("BAD RESPONSE: %-*s\n",HEADER_DIM,confirmation);
+		else printf("BAD RESPONSE: %-*s\n",HEADER_DIM,confirm);
 		exit(-1);
 	}
 	
@@ -149,6 +152,45 @@ void reservation(int sok){
 	}
 	
 	printf(" [OK] Reservation complete: %s\n",chiavazione);
+}
+
+void delete_reservation(int sok){
+	char req_header[HEADER_DIM] = "CANCEL";
+	int res;
+	
+	//send request
+	res = send(sok,req_header,HEADER_DIM,0);
+	if(res == -1){perror("send \"CANCEL\" header");exit(-1);}
+	
+	//receive response header
+	char res_header[HEADER_DIM];
+	res = recv(sok,res_header,HEADER_DIM,0);
+	if(res == -1){perror("recv header");exit(-1);}
+	res_header[HEADER_DIM-1] = '\0';
+	if(strcmp(res_header,"CANC_RESPONSE")!= 0){
+		printf("BAD RESPONSE: %-*s\n",HEADER_DIM,res_header);
+		exit(-1);
+	}
+	
+	//send request
+	res = send(sok,opt.chiavazione,strlen(opt.chiavazione)+1,0);
+	if(res == -1){perror("send key");exit(-1);}
+	
+	//receive confirmation
+	char confirm[HEADER_DIM];
+	res = recv(sok,confirm,HEADER_DIM,0);
+	if(res == -1){perror("recv confirm");exit(-1);}
+	res_header[HEADER_DIM-1] = '\0';
+	
+	//exit if response is not AFFERMATIVE
+	if(strcmp(confirm,"CANC_AFFERMATIVE")!= 0){
+		if(strcmp(confirm,"CANC_NEGATIVE") == 0)
+			puts(" [NO] Cancellation denied from server");
+		else printf("BAD RESPONSE: %-*s\n",HEADER_DIM,confirm);
+		exit(-1);
+	}
+	
+	printf(" [OK] Cancellation complete\n");
 }
 
 int connect_to_server(){
@@ -174,9 +216,18 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 		case 'c':
 			opt.colored = 1;
 			break;
+		case 'v':
+			opt.verbose = 1;
+			break;
 		case 'r':
+			if(opt.delete) argp_failure(state,1,0,"--delete and --reserve are not compatible. Please choose only one.");
 			opt.reserve = 1;
-			break;	
+			break;
+		case 'd':
+			if(opt.reserve) argp_failure(state,1,0," --reserve and --delete are not compatible. Please choose only one.");
+			opt.delete = 1;
+			opt.chiavazione = arg;
+			break;
 		case ARGP_KEY_ARG:
 			switch (state->arg_num){
 				case 0:
@@ -184,12 +235,8 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 					break;
 				case 1:
 					p=strtol(arg,NULL,10);
-					if(p < 1 || p>65535){
-						printf("ERROR: \"%s\" is not a valid port number\n",arg);
-						exit(1);
-					}		
-					else
-						opt.server_port = p;	
+					if(p < 1 || p>65535)argp_failure(state,1,0,"ERROR \"%s\" is not a valid port number\n",arg);		
+					opt.server_port = p;	
 					break;
 			}
 			break;
@@ -216,18 +263,27 @@ int main (int argc, char **argv){
 	struct argp_option options[] = { 
 		{"colored-output", 'c', 0, 0,"Colored output"},
 		{"reserve", 'r', 0, 0,"Reserve some seats"},
+		{"verbose",'v',0,0,"Verbose output"},
+		{"delete", 'd', "CODE" , 0,"Request server to remove reservation whith this CODE"},
 		{ 0 }
 	};
 	struct argp argp = { options, parse_opt, "hostname port", 0 };
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
 	
-	printf("Server: %s\nPort:%d\n",opt.server_ip,opt.server_port);
-	
+	if(opt.verbose){
+		if(opt.colored)
+			printf("\e[0;93mConnecting:\e[0m %s:%d\n",opt.server_ip,opt.server_port);
+		else
+			printf("Connecting: %s:%d\n",opt.server_ip,opt.server_port);	
+	}
 	
 	int sok = connect_to_server();
+	
 	if(opt.reserve)
 		reservation(sok);
+	else if(opt.delete)
+		delete_reservation(sok);
 	else
 		request_map(sok);
 		
