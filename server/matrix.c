@@ -40,21 +40,7 @@ int seats_available(unsigned int num, struct seat * seats){
 }
 
 /*  without the cast
-int seats_available2(unsigned int num, struct seat * seats){
-	if(num < 1 || seats == NULL) return 0;
-	
-	struct seat * punt = seats;
-	while( (punt-seats) < num ){
-		//check bounds
-		if(punt->row >= rows || punt -> col >= cols) return 0;
-		//debug
-		//printf("iteration %d: [%u,%u]=%d\n",punt-seats,punt->row,punt->col,(*(mat+(punt->row*cols)+punt->col))? 1:0);
 		if( *(mat+(punt->row*cols)+punt->col) != 0)
-			return 0;
-		punt++;
-	}
-	return 1;
-}
 */
 
 /*

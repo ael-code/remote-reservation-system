@@ -96,3 +96,8 @@ void print_SeatsArray(unsigned int num,struct seat * seats){
 	printf("\n");
 }
 
+/*
+*	return 1 if there are duplicate seats
+*/
+//int contains_duplicate_SeatsArray(unsigned int num,struct seat * seats){}
+

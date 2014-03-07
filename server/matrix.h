@@ -10,7 +10,6 @@ char * get_matrix();
 *	return 1 if cells in "seats" are all free. 0 instead.
 */
 int seats_available(unsigned int num, struct seat * seats);
-int seats_available2(unsigned int num, struct seat * seats);
 /*
 *	Set all cells in "seats".
 */
