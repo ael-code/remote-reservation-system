@@ -192,7 +192,6 @@ int start_listen_thread(){
 	struct sockaddr_in inaddr;
 	pthread_t tid;
 	
-	print_server_info();
 	
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(sopt.port);	
@@ -203,6 +202,17 @@ int start_listen_thread(){
 	
 	res = bind(ssok,(struct sockaddr *)&addr,sizeof(addr));
 	if(res == -1){perror("bind");return(-2);}
+	
+	//if i choose to use a random port, i need to retrive the random port
+	if(sopt.port == 0){
+		int addr_size = sizeof(addr);
+		//update addr
+		getsockname(ssok,(struct sockaddr *)&addr,&addr_size);
+	}
+
+	sopt.port = ntohs(addr.sin_port);
+	
+	print_server_info();
 	
 	res = listen(ssok,sopt.backlog);
 	if(res == -1){perror("listen");return(-3);}
