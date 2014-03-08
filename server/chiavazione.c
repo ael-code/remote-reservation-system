@@ -57,7 +57,7 @@ unsigned int get_chiavazione_index(char * chiavazione, unsigned int max_index){
 		tbuff[i] = chiavazione[i];
 	}
 	tbuff[i]='\0';
-	return strtol(tbuff,NULL,10);
+	return strtol(tbuff,NULL,10); //cast from long to u_int
 }
 
 /*
