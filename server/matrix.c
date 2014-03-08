@@ -1,20 +1,38 @@
-#include "matrix.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/sem.h>
+#include "matrix.h"
 
  
 char * mat;
 unsigned int rows;
-unsigned int cols; 
+unsigned int cols;
+int semid;
+int res;
+
 
 /*
 *	Allocate memory and set dimension for mat
 */
 void matrix_init(unsigned int mat_rows, unsigned int mat_cols){
+	
+	//set dimensions
 	rows = mat_rows;
 	cols = mat_cols;
+	
+	//allocate memory for mat
 	mat = (char * )calloc(sizeof(char),rows*cols);
-	if(mat == NULL){printf("ERROR: calloc");exit(-1);}	
+	if(mat == NULL){printf("ERROR: calloc");exit(-1);}
+	
+	/*	IPC_PRIVATE isn't a flag field but a key_t type.  If this
+   *   special value is used for key, the  system  call  ignores
+   *   everything but the least significant 9 bits of semflg and
+   *   creates a new semaphore set (on success).
+	*/
+	semid = semget(IPC_PRIVATE,1,0600);
+	if(semid == -1){perror("semget in matrix_init()");exit(-1);}
+	res = semctl(semid, 0, SETVAL, 1);
+	if(res == -1){perror("semctl in matrix_init()");exit(-1);}	
 }
 
 char * get_matrix(){

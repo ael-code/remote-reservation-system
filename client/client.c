@@ -236,6 +236,14 @@ void reservation(int sok){
 		printf("\n");
 	}
 	
+	close(sok);
+	
+	//print
+	if(opt.verbose){
+		if(opt.colored) printf("\e[0;93mClosed socket.\e[0m\n");
+		else printf("Closed socket.\n");
+	}
+	
 	if(opt.colored) printf(" [\e[1;32m OK \e[0m] Reservation complete: \e[1;32m%s\e[0m\n\n",chiavazione);
 	else printf(" [ OK ] Reservation complete: %s\n\n",chiavazione);
 }
@@ -287,6 +295,14 @@ void delete_reservation(int sok){
 	res = recv(sok,confirm,HEADER_DIM,0);
 	if(res == -1){perror("recv confirm");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
+	
+	close(sok);
+	
+	//print
+	if(opt.verbose){
+		if(opt.colored) printf("\e[0;93mClosed socket.\e[0m\n");
+		else printf("Closed socket.\n");
+	}
 	
 	//exit if response is not AFFERMATIVE
 	if(strcmp(confirm,"CANC_AFFERMATIVE")!= 0){

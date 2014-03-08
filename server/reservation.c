@@ -51,10 +51,10 @@ void reservation_init(unsigned int max_rese,unsigned int pwd_l){
    *   everything but the least significant 9 bits of semflg and
    *   creates a new semaphore set (on success).
 	*/
-	semid = semget(IPC_PRIVATE,1,0666);
-	if(semid == -1){perror("semget");exit(-1);}
+	semid = semget(IPC_PRIVATE,1,0600);
+	if(semid == -1){perror("semget in reservation_init()");exit(-1);}
 	res = semctl(semid, 0, SETVAL, 1);
-	if(res == -1){perror("semctl");exit(-1);}
+	if(res == -1){perror("semctl in reservation_init()");exit(-1);}
 	
 };
 
