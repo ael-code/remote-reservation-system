@@ -139,11 +139,12 @@ void reservation(int sok){
 	
 	char line[LINE_DIM];
 	unsigned int seats_num;
+	//loop until an unsigned int is received (sscanf returns number of variables acquired)
 	do{
 		printf("Insert the number of seats you want to reserve: ");
 		fflush(stdout);
 		fgets(line,LINE_DIM,stdin);
-		res = sscanf(line,"%u\n",&seats_num);
+		res = sscanf(line,"%u\n",&seats_num); 
 	}while(res < 1);
 	
 	if(seats_num == 0)exit(0);
@@ -285,7 +286,7 @@ void delete_reservation(int sok){
 		exit(-1);
 	}
 	
-	//send request
+	//send chiavazione
 	res = send(sok,opt.chiavazione,strlen(opt.chiavazione)+1,0);
 	if(res == -1){perror("send key");exit(-1);}
 	
