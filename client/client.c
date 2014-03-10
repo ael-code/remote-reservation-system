@@ -44,6 +44,11 @@ void request_map(int sok){
 	res = recv(sok,res_header,HEADER_DIM,0);
 	if(res == -1){perror("recv header");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
+	if(strcmp(res_header,"MAP_RESPONSE")!= 0){
+		if(opt.colored) printf("\e[1;91mBAD RESPONSE:\e[0m %-*s\n\n",HEADER_DIM,res_header);
+		else printf("BAD RESPONSE: %-*s\n\n",HEADER_DIM,res_header);
+		exit(-1);
+	}
 	
 	//print
 	if(opt.verbose){
@@ -51,12 +56,6 @@ void request_map(int sok){
 		else printf("Received header: %s\n",res_header);
 	}
 	
-	if(strcmp(res_header,"MAP_RESPONSE")!= 0){
-		if(opt.colored) printf("\e[1;91mBAD RESPONSE:\e[0m %-*s\n\n",HEADER_DIM,res_header);
-		else printf("BAD RESPONSE: %-*s\n\n",HEADER_DIM,res_header);
-		exit(-1);
-	}
-		
 	//receive map dimension
 	unsigned int dim[2];
 	res = recv(sok,dim,sizeof(dim),0);
@@ -93,8 +92,9 @@ void request_map(int sok){
 	if(opt.verbose){
 		if(opt.colored) printf("\e[0;93mClosed socket.\e[0m\n");
 		else printf("Closed socket.\n");
-		printf("\n");
 	}
+	
+	puts("");
 	
 	if(opt.colored != 0)
 		print_SeatsMap_Colored(dim[0],dim[1],map);
@@ -121,18 +121,17 @@ void reservation(int sok){
 	res = recv(sok,res_header,HEADER_DIM,0);
 	if(res == -1){perror("recv header");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
+	if(strcmp(res_header,"RESV_RESPONSE")!= 0){
+		if(opt.colored) printf("\e[1;91mBAD RESPONSE:\e[0m %-*s\n\n",HEADER_DIM,res_header);
+		else printf("BAD RESPONSE: %-*s\n\n",HEADER_DIM,res_header);
+		exit(-1);
+	}
 	
 	//print
 	if(opt.verbose){
 		if(opt.colored) printf("\e[0;93mReceived header:\e[0m %s\n",res_header);
 		else printf("Received header: %s\n",res_header);
 		printf("\n");
-	}
-	
-	if(strcmp(res_header,"RESV_RESPONSE")!= 0){
-		if(opt.colored) printf("\e[1;91mBAD RESPONSE:\e[0m %-*s\n\n",HEADER_DIM,res_header);
-		else printf("BAD RESPONSE: %-*s\n\n",HEADER_DIM,res_header);
-		exit(-1);
 	}
 	
 	/* Seats input */
@@ -159,9 +158,6 @@ void reservation(int sok){
 		}while(res<2);
 		i++;
 	}
-	
-	/* End Seats input */
-	
 	
 	//send seats num
 	res = send(sok,&seats_num,sizeof(seats_num),0);
@@ -190,12 +186,6 @@ void reservation(int sok){
 	if(res == -1){perror("recv confirm");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
 	
-	//print
-	if(opt.verbose){
-		if(opt.colored) printf("\e[0;93mReceived header:\e[0m %s\n",confirm);
-		else printf("Received header: %s\n",confirm);
-	}
-	
 	//exit if response is not AFFERMATIVE
 	if(strcmp(confirm,"RESV_AFFERMATIVE")!= 0){
 		printf("\n");
@@ -209,6 +199,11 @@ void reservation(int sok){
 		exit(-1);
 	}
 	
+	//print
+	if(opt.verbose){
+		if(opt.colored) printf("\e[0;93mReceived header:\e[0m %s\n",confirm);
+		else printf("Received header: %s\n",confirm);
+	}
 	
 	//recive chiavazione_dim  (include '\0')
 	unsigned int key_dim;
@@ -238,17 +233,9 @@ void reservation(int sok){
 	if(opt.verbose){
 		if(opt.colored) printf("\e[0;93mReceived key:\e[0m %d bytes\n",res);
 		else printf("Received key: %d bytes\n",res);
+		printf("\n");
 	}
 	
-	close(sok);
-	
-	//print
-	if(opt.verbose){
-		if(opt.colored) printf("\e[0;93mClosed socket.\e[0m\n");
-		else printf("Closed socket.\n");
-	}
-	
-	printf("\n");
 	if(opt.colored) printf(" [\e[1;32m OK \e[0m] Reservation complete: \e[1;32m%s\e[0m\n\n",chiavazione);
 	else printf(" [ OK ] Reservation complete: %s\n\n",chiavazione);
 }
@@ -272,17 +259,16 @@ void delete_reservation(int sok){
 	res = recv(sok,res_header,HEADER_DIM,0);
 	if(res == -1){perror("recv header");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
+	if(strcmp(res_header,"CANC_RESPONSE")!= 0){
+		if(opt.colored) printf("\e[1;91mBAD RESPONSE:\e[0m %-*s\n\n",HEADER_DIM,res_header);
+		else printf("BAD RESPONSE: %-*s\n\n",HEADER_DIM,res_header);
+		exit(-1);
+	}
 	
 	//print
 	if(opt.verbose){
 		if(opt.colored) printf("\e[0;93mReceived header:\e[0m %s\n",res_header);
 		else printf("Received header: %s\n",res_header);
-	}
-	
-	if(strcmp(res_header,"CANC_RESPONSE")!= 0){
-		if(opt.colored) printf("\e[1;91mBAD RESPONSE:\e[0m %-*s\n\n",HEADER_DIM,res_header);
-		else printf("BAD RESPONSE: %-*s\n\n",HEADER_DIM,res_header);
-		exit(-1);
 	}
 	
 	//send request
@@ -293,6 +279,7 @@ void delete_reservation(int sok){
 	if(opt.verbose){
 		if(opt.colored) printf("\e[0;93mSent key:\e[0m %u bytes\n",res);
 		else printf("Sent key: %u bytes\n",res);
+		printf("\n");
 	}
 	
 	//receive confirmation
@@ -300,21 +287,6 @@ void delete_reservation(int sok){
 	res = recv(sok,confirm,HEADER_DIM,0);
 	if(res == -1){perror("recv confirm");exit(-1);}
 	res_header[HEADER_DIM-1] = '\0';
-	
-	//print
-	if(opt.verbose){
-		if(opt.colored) printf("\e[0;93mReceived header:\e[0m %s\n",confirm);
-		else printf("Received header: %s\n",confirm);
-	}
-	
-	close(sok);
-	
-	//print
-	if(opt.verbose){
-		if(opt.colored) printf("\e[0;93mClosed socket.\e[0m\n");
-		else printf("Closed socket.\n");
-		printf("\n");
-	}
 	
 	//exit if response is not AFFERMATIVE
 	if(strcmp(confirm,"CANC_AFFERMATIVE")!= 0){
@@ -333,14 +305,6 @@ void delete_reservation(int sok){
 }
 
 int connect_to_server(){
-	//print
-	if(opt.verbose){
-		if(opt.colored)
-			printf("\e[0;93mConnecting:\e[0m %s:%d\n",opt.server_ip,opt.server_port);
-		else
-			printf("Connecting: %s:%d\n",opt.server_ip,opt.server_port);	
-	}
-	
 	int sok,res;
 	struct sockaddr_in addr;
 	
@@ -418,6 +382,13 @@ int main (int argc, char **argv){
 	struct argp argp = { options, parse_opt, "hostname port", 0 };
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
+	
+	if(opt.verbose){
+		if(opt.colored)
+			printf("\e[0;93mConnecting:\e[0m %s:%d\n",opt.server_ip,opt.server_port);
+		else
+			printf("Connecting: %s:%d\n",opt.server_ip,opt.server_port);	
+	}
 	
 	int sok = connect_to_server();
 	
