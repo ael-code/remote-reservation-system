@@ -4,11 +4,11 @@
 #include "matrix.h"
 
  
-char * mat;
-unsigned int rows;
-unsigned int cols;
-int semid_m; //se metto nome uguale a quello di reservation.c da problemi
-int res;
+static char * mat;
+static unsigned int rows;
+static unsigned int cols;
+static int semid;
+static int res;
 
 void printSem(char * msg);
 /*
@@ -29,15 +29,15 @@ void matrix_init(unsigned int mat_rows, unsigned int mat_cols){
    *   everything but the least significant 9 bits of semflg and
    *   creates a new semaphore set (on success).
 	*/
-	semid_m = semget(IPC_PRIVATE,rows*cols,IPC_CREAT|IPC_EXCL|0600);
-	if(semid_m == -1){perror("semget in matrix_init()");exit(-1);}
+	semid = semget(IPC_PRIVATE,rows*cols,IPC_CREAT|IPC_EXCL|0600);
+	if(semid == -1){perror("semget in matrix_init()");exit(-1);}
 	
 	unsigned short vals[rows*cols];
 	int i;
 	for(i = 0;i<rows*cols;i++)
 		vals[i]=1;
 	
-	res = semctl(semid_m, rows*cols, SETALL, vals);
+	res = semctl(semid, rows*cols, SETALL, vals);
 	if(res == -1){perror("semctl in matrix_init()");exit(-1);}
 }
 
@@ -103,7 +103,7 @@ void lock_seats(unsigned int num, struct seat * seats){
 		sops[i].sem_op = -1;
 		sops[i].sem_flg = 0;	
 	}
-	int res = semop(semid_m,sops,sizeof(sops)/sizeof(struct sembuf));
+	int res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
 	if(res == -1){perror("semop, locking matrix semaphores");exit(-1);}
 }
 
@@ -119,7 +119,7 @@ void release_seats(unsigned int num, struct seat * seats){
 		sops[i].sem_op = 1;
 		sops[i].sem_flg = 0;	
 	}
-	int res = semop(semid_m,sops,sizeof(sops)/sizeof(struct sembuf));
+	int res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
 	if(res == -1){perror("semop, releasing matrix sempaphores");exit(-1);}
 }
 
@@ -164,12 +164,12 @@ void printSem(char * msg){/* DEBUG */
 	printf("%s\n",msg);	
 	
 	struct semid_ds sds;
-	res = semctl(semid_m, 0,IPC_STAT,&sds);
+	res = semctl(semid, 0,IPC_STAT,&sds);
 	if(res == -1){perror("semctl in matrix_init()");exit(-1);}	
 	printf("sem dim %ld\n",sds.sem_nsems);
 	
 	int i;
-	for(i=0;i<rows*cols;i++)printf("sem[%d]= %d\n",i,semctl(semid_m, i, GETVAL));
+	for(i=0;i<rows*cols;i++)printf("sem[%d]= %d\n",i,semctl(semid, i, GETVAL));
 }
 
 

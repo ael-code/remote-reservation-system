@@ -6,12 +6,12 @@
 #include "chiavazione.h"
 #include "../lib/seats.h"
 
-struct res_entry * array;
-struct res_entry * free_p; //pointer to the first free entry of array. It is NULL if there is no free cell
-unsigned int array_dim;
-unsigned int pwd_length;
-int semid;
-int res;
+static struct res_entry * array;
+static struct res_entry * free_p; //pointer to the first free entry of array. It is NULL if there is no free cell
+static unsigned int array_dim;
+static unsigned int pwd_length;
+static int semid;
+static int res;
 
 /*
 *	update the pointer "free_p" searching for the next free entries.
