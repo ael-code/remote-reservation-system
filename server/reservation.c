@@ -19,7 +19,7 @@ static int res;
 */
 void update_freep(){
 	//should never happen
-	if(free_p == NULL){puts("update_freep() find NULL pointer");exit(-1);} 
+	//if(free_p == NULL){puts("update_freep() find NULL pointer");exit(-1);} 
 	
 	//find next free entry of array
 	struct res_entry * temp = free_p+1;
@@ -54,7 +54,7 @@ void reservation_init(unsigned int max_rese,unsigned int pwd_l){
    *   everything but the least significant 9 bits of semflg and
    *   creates a new semaphore set (on success).
 	*/
-	semid = semget(IPC_PRIVATE,1,IPC_CREAT|IPC_EXCL|0600);
+	semid = semget(IPC_PRIVATE,1,0600);
 	if(semid == -1){perror("semget in reservation_init()");exit(-1);}
 	res = semctl(semid, 0, SETVAL, 1);
 	if(res == -1){perror("semctl in reservation_init()");exit(-1);}
@@ -69,28 +69,34 @@ char * reservation_perform(int s_num,struct seat * seats){
 	//if there aren't free entries return NULL
 	if(free_p == NULL) return NULL;
 	
-	/* MATRIX ACCESS */
-	
 	//control if seats respect constraints
 	if(control_seats(s_num, seats))return NULL;
 	
-	lock_seats(s_num,seats);
+	/* MATRIX ACCESS */
+	wait_master_semaphore();
+	
+	int lock_res = lock_seats(s_num, seats);
+	if(lock_res) exclusive_lock_seats(s_num, seats);
 	
 	//control if seats are free
 	if(!seats_available(s_num, seats)){
-		release_seats(s_num,seats);
+		if(lock_res) exclusive_release_seats(s_num, seats);
+		else release_seats(s_num, seats);
 		return NULL;
 	}
 		
 	//occupy seats
 	occupy_seats(s_num, seats);
 	
-	release_seats(s_num,seats);
+	if(lock_res) exclusive_release_seats(s_num, seats);
+	else release_seats(s_num, seats);
 	
 	/* END MATRIX ACCESS */
 	
 	//paranoic control
 	if(free_p == NULL){puts("I did not found free entry to store prenotation after i have occupied seats");exit(-1);}
+	
+	/* FREE POINTER ACCESS */
 	
 	//wait until "free_p" is available
 	struct sembuf sops;
@@ -102,7 +108,7 @@ char * reservation_perform(int s_num,struct seat * seats){
 	if(res == -1){perror("semop, waiting free pointer");exit(-1);}
 	
 	//save the current free_p
-	struct res_entry * my_entry = free_p;
+	struct res_entry * my_entry = free_p;	
 	
 	//find the new free entry
 	update_freep();
@@ -114,6 +120,8 @@ char * reservation_perform(int s_num,struct seat * seats){
 	sops.sem_op = 1;
 	res = semop(semid,&sops,sizeof(sops)/sizeof(struct sembuf));
 	if(res == -1){perror("semop, waiting free pointer");exit(-1);}
+	
+	/* END POINTER ACCESS */
 		
 	//we need to do a copy of seats because it frees after thread exit 
 	void * seats_mem = malloc(sizeof(struct seat)*s_num);
@@ -128,8 +136,7 @@ char * reservation_perform(int s_num,struct seat * seats){
 }
 
 int reservation_delete(char * chiavazione){
-	//prima effettua l'accesso alla matrice e poi libera il posto della prenotazione nell'array.
-	// Problemi?
+	//prima effettua accesso array prenotazioni e poi a matrice dei posti
 	
 	//get index in array
 	unsigned int index = get_chiavazione_index(chiavazione, array_dim -1);
@@ -141,47 +148,49 @@ int reservation_delete(char * chiavazione){
 	if(array[index].chiavazione == NULL || strcmp(chiavazione,array[index].chiavazione) != 0)
 		return -1;
 	
-	/* MATRIX ACCESS */
-	
-	lock_seats(array[index].s_num, array[index].seats);
-	
-	free_seats(array[index].s_num, array[index].seats);
-	
-	release_seats(array[index].s_num, array[index].seats);
-	
-	/* END MATRIX ACCESS */
-	
-		
-	//free chiavazione
-	free(array[index].chiavazione);
+	//Store res_entry before cleaning it
+	char * temp_chiavazione = array[index].chiavazione;
 	array[index].chiavazione = NULL;
 	
-	//free seats structure
-	free(array[index].seats);	
+	struct seat * temp_seats = array[index].seats;
 	array[index].seats = NULL;
+
+	int temp_s_num = array[index].s_num;
+	array[index].s_num = 0; //critic, after this operation this res_entry result free
 	
-	//reset s_num
-	array[index].s_num = 0;
+	/* FREE POINTER ACCESS */
 	
+	//wait until free_p is free & lock free_p
+	struct sembuf sops;
+	sops.sem_num = 0;
+	sops.sem_op = -1;
+	sops.sem_flg = 0;
+	res = semop(semid,&sops,sizeof(sops)/sizeof(struct sembuf));
+	if(res == -1){perror("semop, waiting free pointer");exit(-1);}
 	
 	//if this entry is upper then the one pointed by free_p, update free_p
-	if(free_p-array > index || free_p == NULL){
-	
-		//wait until free_p is available
-		struct sembuf sops;
-		sops.sem_num = 0;
-		sops.sem_op = -1;
-		sops.sem_flg = 0;
-		res = semop(semid,&sops,sizeof(sops)/sizeof(struct sembuf));
-		if(res == -1){perror("semop, waiting free pointer");exit(-1);}
-			
+	if(free_p == NULL || free_p-array > index )		
 		free_p = &array[index];
 	
-		//release free_p semaphore
-		sops.sem_op = 1;
-		res = semop(semid,&sops,sizeof(sops)/sizeof(struct sembuf));
-		if(res == -1){perror("semop, waiting free pointer");exit(-1);}
-	}
+	//release free_p semaphore
+	sops.sem_op = 1;
+	res = semop(semid,&sops,sizeof(sops)/sizeof(struct sembuf));
+	if(res == -1){perror("semop, waiting free pointer");exit(-1);}
+	
+	/* END FREE POINTER ACCESS */
+	
+	/* MATRIX ACCESS */
+	
+	free_seats(temp_s_num, temp_seats);
+	
+	/* END MATRIX ACCESS */
+
+	//free chiavazione
+	free(array[index].chiavazione);
+	
+	//free seats structure
+	free(array[index].seats);
+	
 	return 0;
 }
 

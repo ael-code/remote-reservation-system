@@ -1,16 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/sem.h>
+#include <errno.h>
 #include "matrix.h"
 
+#define T_OUT 4
  
 static char * mat;
 static unsigned int rows;
 static unsigned int cols;
 static int semid;
+static int sem_timeout;
 static int res;
 
-void printSem(char * msg);
 /*
 *	Allocate memory and set dimension for mat
 */
@@ -29,7 +31,7 @@ void matrix_init(unsigned int mat_rows, unsigned int mat_cols){
    *   everything but the least significant 9 bits of semflg and
    *   creates a new semaphore set (on success).
 	*/
-	semid = semget(IPC_PRIVATE,rows*cols,IPC_CREAT|IPC_EXCL|0600);
+	semid = semget(IPC_PRIVATE,rows*cols,0600);
 	if(semid == -1){perror("semget in matrix_init()");exit(-1);}
 	
 	unsigned short vals[rows*cols];
@@ -39,8 +41,21 @@ void matrix_init(unsigned int mat_rows, unsigned int mat_cols){
 	
 	res = semctl(semid, rows*cols, SETALL, vals);
 	if(res == -1){perror("semctl in matrix_init()");exit(-1);}
+
+	sem_timeout = semget(IPC_PRIVATE,2,0600);
+	if(sem_timeout == -1){perror("semget in matrix_init()");exit(-1);}
+	
+	res = semctl(sem_timeout, 0, SETVAL, 0);
+	if(res == -1){perror("semctl in matrix_init()");exit(-1);}
+	
+	res = semctl(sem_timeout, 1, SETVAL, 1);
+	if(res == -1){perror("semctl in matrix_init()");exit(-1);}
+	
 }
 
+/*
+*	return pointer to the matrix
+*/
 char * get_matrix(){
 	return mat;
 }
@@ -71,7 +86,7 @@ void occupy_seats(unsigned int num, struct seat * seats){
 	struct seat * punt = seats;
 	while( (punt-seats) < num ){
 		//paranoic control
-		if(matrix[punt->row][punt->col] == 1){puts("founded seats already occupied");exit(-1);}
+		if(matrix[punt->row][punt->col] == 1){puts("found seats already occupied");exit(-1);}
 		matrix[punt->row][punt->col] = 1;
 		punt++;
 	}
@@ -84,27 +99,79 @@ void free_seats(unsigned int num, struct seat * seats){
 	char (*matrix)[cols] =(char (*)[cols]) mat;
 	struct seat * punt = seats;
 	while( (punt-seats) < num ){
-		if(matrix[punt->row][punt->col] == 0){puts("founded seats already free");exit(-1);}
+		//paranoic control
+		if(matrix[punt->row][punt->col] == 0){puts("found seats already free");exit(-1);}
 		matrix[punt->row][punt->col] = 0;
 		punt++;
 	}
 }
 
 /*
-*	Lock semaphores on these "seats". (no input controls)
+*	Try to lock semaphores on these "seats". 
+* 	This operation is blocking for T_OUT time, after which it returns -1.
+*  Prevent Starvation
 */
-void lock_seats(unsigned int num, struct seat * seats){
-	
+int lock_seats(unsigned int num, struct seat * seats){
 	struct seat * punt = seats;
 	struct sembuf sops[num];
 	int i;
 	for(i = 0; i<num; i++){
-		sops[i].sem_num = ( punt[i].row * cols ) + punt[i].col ;
+		sops[i].sem_num = ( punt[i].row * cols ) + punt[i].col;
 		sops[i].sem_op = -1;
-		sops[i].sem_flg = 0;	
+		sops[i].sem_flg = SEM_UNDO;	
 	}
-	int res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
-	if(res == -1){perror("semop, locking matrix semaphores");exit(-1);}
+	
+	struct timespec time_s;
+	time_s.tv_sec = T_OUT; //time_t
+	time_s.tv_nsec = 0; //long
+	res = semtimedop(semid,sops,sizeof(sops)/sizeof(struct sembuf), &time_s);
+	if(res == -1){
+		if(errno == EAGAIN){
+			return -1;
+		}else{
+			perror("semop, locking matrix semaphores");
+			exit(-1);
+		}
+	}
+	return 0;
+}
+
+/*
+*	Locks semaphores on these "seats" in a special way.
+* 	Should be called only after a lock_seats() time-out.
+*
+* 		- Increase master semaphore (temporary deny access to other non stucked threads)
+*		- Wait for my turn on time-out semaphore (temporary deny access to other stucked threads)
+*		- Locks semaphores on these "seats".
+*/
+int exclusive_lock_seats(unsigned int num, struct seat * seats){
+	//prepare lock structure
+	struct seat * punt = seats;
+	struct sembuf sops[num];
+	int i;
+	for(i = 0; i<num; i++){
+		sops[i].sem_num = ( punt[i].row * cols ) + punt[i].col;
+		sops[i].sem_op = -1;
+		sops[i].sem_flg = SEM_UNDO;	
+	}
+	
+	//deny access to the matrix for the other threads
+	struct sembuf sop_timeout;
+	sop_timeout.sem_num = 0;
+	sop_timeout.sem_op = 1;
+	sop_timeout.sem_flg = SEM_UNDO;
+	res = semop(sem_timeout,&sop_timeout,1);
+	if(res == -1){perror("semop increasing sem_timeout[0]");exit(-1);}
+	
+	//waiting for other stucked threads
+	sop_timeout.sem_num = 1;
+	sop_timeout.sem_op = -1;
+	res = semop(sem_timeout,&sop_timeout,1);
+	if(res == -1){perror("semop waiting sem_timeout[1]");exit(-1);}
+	
+	//proceed with sops
+	res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
+	if(res == -1){perror("semop, special locking");exit(-1);}
 }
 
 /*
@@ -119,9 +186,55 @@ void release_seats(unsigned int num, struct seat * seats){
 		sops[i].sem_op = 1;
 		sops[i].sem_flg = 0;	
 	}
-	int res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
+	res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
 	if(res == -1){perror("semop, releasing matrix sempaphores");exit(-1);}
 }
+/*
+*	Release semaphores on these "seats" in a special way.
+* 	Should be called only after a special_lock_seats().
+*
+*		- Release semaphores on these "seats".
+*		- Restore to 1 time-out semaphore (allow access to others stucked threads)
+* 		- Increase master semaphore (allow access to other non stucked threads)
+*/
+void exclusive_release_seats(unsigned int num, struct seat * seats){
+	//release matrix semaphores
+	struct seat * punt = seats;
+	struct sembuf sops[num];
+	int i;
+	for(i = 0; i<num; i++){
+		sops[i].sem_num = ( punt[i].row * cols ) + punt[i].col ;
+		sops[i].sem_op = 1;
+		sops[i].sem_flg = 0;	
+	}
+	res = semop(semid,sops,sizeof(sops)/sizeof(struct sembuf));
+	if(res == -1){perror("semop, releasing matrix sempaphores");exit(-1);}
+	
+	//releasing other stucked threads
+	struct sembuf sop_timeout;
+	sop_timeout.sem_num = 1;
+	sop_timeout.sem_op = 1;
+	sop_timeout.sem_flg = 0;
+	res = semop(sem_timeout,&sop_timeout,1);
+	if(res == -1){perror("semop releasing sem_timeout[1]");exit(-1);}
+	
+	//allow access to the matrix for the other threads
+	sop_timeout.sem_num = 0;
+	sop_timeout.sem_op = -1;
+	res = semop(sem_timeout,&sop_timeout,1);
+	if(res == -1){perror("semop releasing sem_timeout[0]");exit(-1);}
+	
+}
+
+void wait_master_semaphore(){
+	struct sembuf sop;
+	sop.sem_num = 0;
+	sop.sem_op = 0;
+	sop.sem_flg = 0;
+	res = semop(sem_timeout,&sop,1);
+	if(res == -1){perror("semop, wait_master_semaphore");exit(-1);}
+}
+
 
 /*
 *	If these "seats" violate constraints return (int > 0).
@@ -160,7 +273,8 @@ int control_seats(unsigned int num, struct seat * seats){
 	return 0;
 }
 
-void printSem(char * msg){/* DEBUG */
+/* DEBUG
+void printSem(char * msg){
 	printf("%s\n",msg);	
 	
 	struct semid_ds sds;
@@ -171,6 +285,4 @@ void printSem(char * msg){/* DEBUG */
 	int i;
 	for(i=0;i<rows*cols;i++)printf("sem[%d]= %d\n",i,semctl(semid, i, GETVAL));
 }
-
-
-
+*/
