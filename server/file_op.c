@@ -30,6 +30,9 @@ void save_server_opt(){
 }
 
 void load_server_opt(){
+	//save file name
+	char * temp_name = sopt.file;
+	
 	int des_f = open(sopt.file,0660);
 	if(des_f == -1){perror("loading server option from file");exit(-1);}
 	
@@ -42,8 +45,8 @@ void load_server_opt(){
 		exit(-1);
 	}
 	
-	//debug 
-	printf("")
+	//restore file name
+	sopt.file = temp_name;
 	
 	if(close(des_f) == -1)
 		perror("closing file_ds in load_server_opt()");
