@@ -1,7 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/sem.h>
 #include <errno.h>
+
 #include "matrix.h"
 
 #define T_OUT 4
@@ -13,6 +15,8 @@ static int semid;
 static int sem_timeout;
 static int res;
 
+
+int semtimedop(int,struct sembuf*, unsigned, struct timespec *);
 /*
 *	Allocate memory and set dimension for mat
 */
@@ -144,7 +148,7 @@ int lock_seats(unsigned int num, struct seat * seats){
 *		- Wait for my turn on time-out semaphore (temporary deny access to other stucked threads)
 *		- Locks semaphores on these "seats".
 */
-int exclusive_lock_seats(unsigned int num, struct seat * seats){
+void exclusive_lock_seats(unsigned int num, struct seat * seats){
 	//prepare lock structure
 	struct seat * punt = seats;
 	struct sembuf sops[num];

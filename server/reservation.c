@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/sem.h>
+#include <fcntl.h>
+#include "matrix.h"
 #include "reservation.h"
 #include "chiavazione.h"
-#include "../lib/seats.h"
+#include "seats.h"
 
 static struct res_entry * array;
 static struct res_entry * free_p; //pointer to the first free entry of array. It is NULL if there is no free cell
@@ -60,7 +62,7 @@ void reservation_init(unsigned int max_rese,unsigned int pwd_l){
 	if(res == -1){perror("semctl in reservation_init()");exit(-1);}
 	
 	
-};
+}
 
 char * reservation_perform(int s_num,struct seat * seats){
 	//prima effettua la prenotazione e poi salvala nell'array altrimenti bloccheresti tutti gli altri. 
@@ -186,10 +188,10 @@ int reservation_delete(char * chiavazione){
 	/* END MATRIX ACCESS */
 
 	//free chiavazione
-	free(array[index].chiavazione);
+	free(temp_chiavazione);
 	
 	//free seats structure
-	free(array[index].seats);
+	free(temp_seats);
 	
 	return 0;
 }
@@ -204,5 +206,4 @@ struct res_entry * get_reservation(char * chiavazione){
 	
 	return array+index;
 }
-
 

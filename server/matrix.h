@@ -43,7 +43,7 @@ int lock_seats(unsigned int num, struct seat * seats);
 *		- Wait for my turn on time-out semaphore (temporary deny access to other stucked threads)
 *		- Locks semaphores on these "seats".
 */
-int exclusive_lock_seats(unsigned int num, struct seat * seats);
+void exclusive_lock_seats(unsigned int num, struct seat * seats);
 
 /*
 *	Release semaphores on these "seats". (no input controls)

@@ -7,22 +7,15 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
+
 #include "matrix.h"
-#include "../lib/rrs_protocol.h"
-#include "../lib/seats.h"
+#include "chiavazione.h"
+#include "rrs_protocol.h"
+#include "seats.h"
 #include "reservation.h"
-
-
-//struct to store server option
-struct server_option{
-	int port;  								// 0 means random port
-	int backlog;  							// 50 default
-	char colored;							// 0 = false; 1=true; dafault 0
-	char verbose;							// 0 = false; 1=true; default 0
-	unsigned int pwd_length;
-	unsigned int map_rows;
-	unsigned int map_cols;
-};
+#include "server.h"
+#include "file_op.h"
 
 //struct to store dispatcher thread paramenter
 struct thread_param{
@@ -99,6 +92,7 @@ void * dispatcher_thread(void * thread_parameter){
 		unsigned int seats_num = 0;
 		res = recv(t_param->sok,&seats_num,sizeof(seats_num),0);
 		if(res < sizeof(seats_num)){
+			printf("%d\n",res);//debug
 			if(res == -1)perror("receive number of seats");
 			else puts("Error: recived invalid seats num");
 			pthread_exit(NULL);
@@ -188,7 +182,6 @@ int start_listen_thread(){
 	signal(SIGPIPE,SIG_IGN);
 	int ssok,res;
 	struct sockaddr_in addr;
-	struct sockaddr_in inaddr;
 	pthread_t tid;
 	
 	
@@ -204,7 +197,7 @@ int start_listen_thread(){
 	
 	//if i choose to use a random port, i need to retrive the random port
 	if(sopt.port == 0){
-		int addr_size = sizeof(addr);
+		unsigned int addr_size = sizeof(addr);
 		//update addr
 		getsockname(ssok,(struct sockaddr *)&addr,&addr_size);
 	}
@@ -216,7 +209,7 @@ int start_listen_thread(){
 	res = listen(ssok,sopt.backlog);
 	if(res == -1){perror("listen");return(-3);}
 	
-	int size = sizeof(struct sockaddr_in);
+	unsigned int size = sizeof(struct sockaddr_in);
 	while(1){
 		struct thread_param * t_param = calloc(1,sizeof(struct thread_param));
 		if(t_param == NULL){perror("start_listen_thread: calloc");exit(-5);}
@@ -240,6 +233,9 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			break;
 		case 'v':
 			sopt.verbose = 1;
+			break;
+		case 'f':
+			sopt.file = arg;
 			break;
 		case 's':
 			temp = strtol(arg,NULL,10);
@@ -286,6 +282,7 @@ int main (int argc, char **argv){
 	struct argp_option options[] = { 
 		{"port", 'p', "PORT-NUM", 0, "Listening port"},
 		{"colored-output", 'c', 0, 0,"Colored output"},
+		{"file", 'f', "FILE-NAME", 0,"Backup file"},
 		{"verbose",'v',0,0,"Verbose output"},
 		{"pwd-length", 's', "LENGTH", 0,"length of password used to generate reservation keys [default 8]"},
 		{ 0 }
@@ -293,6 +290,23 @@ int main (int argc, char **argv){
 	struct argp argp = { options, parse_opt, "rows cols", 0 };
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
+	
+	//load config from file if exist
+	if(sopt.file != NULL && file_exist(sopt.file)){
+		puts("file exists");//debug
+		load_server_opt();
+		//print
+		if(sopt.verbose){
+			printf("server options succesfully loaded from file \"%s\"\n",sopt.file);
+		}
+	}else if(sopt.file != NULL && !file_exist(sopt.file)){
+		puts("file not exists");//debug
+		save_server_opt();
+		//print
+		if(sopt.verbose){
+			printf("server options succesfully saved on file file \"%s\"\n",sopt.file);
+		}
+	}
 	
 	//seats initialization
 	matrix_init(sopt.map_rows,sopt.map_cols);
@@ -308,6 +322,8 @@ int main (int argc, char **argv){
 		print_SeatsMap_Colored(sopt.map_rows,sopt.map_cols,matrix);
 	else
 		print_SeatsMap_Special(sopt.map_rows,sopt.map_cols,matrix);
-		
-	start_listen_thread();	
+	
+	start_listen_thread();
+	
+	return 0;
 }

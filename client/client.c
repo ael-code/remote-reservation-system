@@ -7,9 +7,10 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
-#include "../lib/rrs_protocol.h"
-#include "../lib/seats.h"
+#include "rrs_protocol.h"
+#include "seats.h"
 
 #define LINE_DIM 100
 
