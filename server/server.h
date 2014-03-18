@@ -1,3 +1,6 @@
+#ifndef __SERVER__
+#define __SERVER__
+
 //struct to store server option
 struct server_option{
 	int port;  								// 0 means random port
@@ -10,3 +13,4 @@ struct server_option{
 	unsigned int map_cols;
 };
 
+#endif

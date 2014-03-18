@@ -1,5 +1,5 @@
-#ifndef RESERVATION_H
-#define RESERVATION_H
+#ifndef __RESERVATION__
+#define __RESERVATION__
 
 /*
 *	this is the unit that rapresent one reservation in reservation array

@@ -1,3 +1,6 @@
+#ifndef __MATRIX__
+#define __MATRIX__
+
 #include "../lib/seats.h"
 
 /*
@@ -76,3 +79,5 @@ void wait_master_semaphore();
 * 	# 3 if seats array contains duplicate
 */
 int control_seats(unsigned int num, struct seat * seats);
+
+#endif

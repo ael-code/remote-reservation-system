@@ -1,3 +1,5 @@
+#ifndef __CHIAVAZIONE__
+#define __CHIAVAZIONE__
 /*
 * Generate a chiavazione with index "index" 
 * and a password length of "pwd_length"
@@ -20,3 +22,4 @@ unsigned int get_chiavazione_length(unsigned int max_index,unsigned int pwd_leng
 */
 void initialize_generator();
 
+#endif
