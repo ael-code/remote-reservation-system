@@ -17,6 +17,14 @@ static int res;
 
 
 int semtimedop(int,struct sembuf*, unsigned, struct timespec *);
+
+void matrix_close(){
+	res = semctl(semid,0,IPC_RMID);
+	if(res == -1){perror("deleting semid in matrix.c");}
+	res = semctl(sem_timeout,0,IPC_RMID);
+	if(res == -1){perror("deleting sem_timeout in matrix.c");}
+	//free(mat);
+}
 /*
 *	Allocate memory and set dimension for mat
 */

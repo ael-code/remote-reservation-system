@@ -11,11 +11,12 @@
 
 #include "matrix.h"
 #include "chiavazione.h"
-#include "rrs_protocol.h"
 #include "seats.h"
+#include "rrs_protocol.h"
 #include "reservation.h"
 #include "server.h"
 #include "file_op.h"
+#include "threads.h"
 
 //struct to store dispatcher thread paramenter
 struct thread_param{
@@ -27,7 +28,27 @@ struct thread_param{
 
 //Global variable
 struct server_option sopt;
+static int ssok;
 
+void close_routine(int s){
+	kill_all_threads();
+	if(sopt.verbose == 1){
+		if(sopt.colored)printf("\e[1;91mClosed all threads\e[0m\n");
+		else printf("Closed all threads\n");
+	}
+	matrix_close();
+	reservation_close();
+	if(sopt.verbose == 1){
+		if(sopt.colored)printf("\e[1;91mRemoved all semaphores\e[0m\n");
+		else printf("Removed all semaphores\n");
+	}
+	close(ssok);
+	if(sopt.verbose == 1){
+		if(sopt.colored)printf("\e[1;91mClosed main socket\e[0m\n");
+		else printf("Closed main socket\n");
+	}
+	pthread_exit(NULL);
+}
 
 //thread cleanup
 void clean_thread_param(void * thread_parameter){
@@ -92,7 +113,6 @@ void * dispatcher_thread(void * thread_parameter){
 		unsigned int seats_num = 0;
 		res = recv(t_param->sok,&seats_num,sizeof(seats_num),0);
 		if(res < sizeof(seats_num)){
-			printf("%d\n",res);//debug
 			if(res == -1)perror("receive number of seats");
 			else puts("Error: recived invalid seats num");
 			pthread_exit(NULL);
@@ -106,10 +126,6 @@ void * dispatcher_thread(void * thread_parameter){
 			else puts("Error: mismatch of seats number recived");
 			pthread_exit(NULL);
 		}
-		
-		//DEBUG:
-		//printf("%u\n",seats_num);
-		//print_SeatsArray(seats_num,seats);
 		
 		char * chiavazione = reservation_perform(seats_num,seats);
 		
@@ -167,6 +183,7 @@ void * dispatcher_thread(void * thread_parameter){
 	}
 	
 	pthread_cleanup_pop(1);
+	del_thread(pthread_self());
 	pthread_exit(NULL);
 }
 
@@ -180,11 +197,10 @@ void print_server_info(){
 
 int start_listen_thread(){
 	signal(SIGPIPE,SIG_IGN);
-	int ssok,res;
+	int res;
 	struct sockaddr_in addr;
 	pthread_t tid;
-	
-	
+
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(sopt.port);	
 	addr.sin_addr.s_addr = INADDR_ANY;
@@ -217,6 +233,7 @@ int start_listen_thread(){
 		t_param->sok = accept(ssok,(struct sockaddr *)&(t_param->addr),&size);
 		if(t_param->sok == -1){perror("accept");return(-4);}
 		pthread_create(&tid,NULL,dispatcher_thread,t_param);
+		add_thread(tid);
 	}
 }
 
@@ -270,7 +287,23 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 }
 
 int main (int argc, char **argv){
-
+	
+	//signal
+	sigset_t set;
+	if(sigfillset(&set)){ perror("filling set of signals"); exit(-1);}
+	struct sigaction sig_act;
+	sig_act.sa_handler = close_routine;
+	sig_act.sa_mask = set;
+	
+	if(sigaction(SIGINT,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	if(sigaction(SIGTERM,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	if(sigaction(SIGABRT,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	if(sigaction(SIGHUP,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	if(sigaction(SIGQUIT,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	if(sigaction(SIGILL,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	
+	//add main to the thread list
+	add_thread(pthread_self());
 	// server_option initialization (default)
 	sopt.port = 0;
 	sopt.backlog = 50;
@@ -293,18 +326,16 @@ int main (int argc, char **argv){
 	
 	//load config from file if exist
 	if(sopt.file != NULL && file_exist(sopt.file)){
-		puts("file exists");//debug
 		load_server_opt();
 		//print
 		if(sopt.verbose){
-			printf("server options succesfully loaded from file \"%s\"\n",sopt.file);
+			printf("server options succesfully loaded from file \"%s\"\n\n",sopt.file);
 		}
 	}else if(sopt.file != NULL && !file_exist(sopt.file)){
-		puts("file not exists");//debug
 		save_server_opt();
 		//print
 		if(sopt.verbose){
-			printf("server options succesfully saved on file file \"%s\"\n",sopt.file);
+			printf("server options succesfully saved on file file \"%s\"\n\n",sopt.file);
 		}
 	}
 	
@@ -317,7 +348,7 @@ int main (int argc, char **argv){
 	//thing pointed to by matrix is an array of map_cols char
 	char (*matrix)[sopt.map_cols] =(char (*)[sopt.map_cols]) get_matrix();
 	
-	//debug seats
+	// debug seats
 	if(sopt.colored != 0)
 		print_SeatsMap_Colored(sopt.map_rows,sopt.map_cols,matrix);
 	else

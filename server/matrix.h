@@ -1,6 +1,10 @@
 #include "../lib/seats.h"
 
 /*
+*	Deallocate memory and remove semaphores
+*/
+void matrix_close();
+/*
 *	Allocate memory and set dimension for mat
 */
 void matrix_init(unsigned int mat_rows, unsigned int mat_cols);

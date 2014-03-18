@@ -10,6 +10,7 @@ struct res_entry{
 	struct seat * seats;		// pointer to an array of seats (dimension s_num)
 };
 
+void reservation_close();
 
 void reservation_init(unsigned int max_rese,unsigned int pwd_length);
 

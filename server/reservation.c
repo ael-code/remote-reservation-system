@@ -36,6 +36,11 @@ void update_freep(){
 	free_p = NULL;
 }
 
+void reservation_close(){
+	res = semctl(semid,0,IPC_RMID);
+	if(res == -1){perror("deleting semid in reservation.c");}
+}
+
 void reservation_init(unsigned int max_rese,unsigned int pwd_l){
 	//initialize chiavazione generator
 	initialize_generator();
