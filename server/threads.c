@@ -28,7 +28,7 @@ void del_thread(pthread_t tid){
 			#ifdef DEBUG
 			char name[22];
 			pthread_getname_np(pthread_self(),name,sizeof(name));
-			printf("deleted thread: \"%s\" from threads-struct\n");
+			printf("deleted thread: \"%s\" from threads-struct\n", name);
 			#endif
 			
 			break;
@@ -48,7 +48,6 @@ void kill_all_threads(){
 	while(punt != NULL){
 		if(!pthread_equal(punt->ptid,pthread_self())){
 			#ifdef DEBUG
-			name[22];
 			pthread_getname_np(punt->ptid,name,sizeof(name));
 			printf("killing thread: \"%s\"\n",name);
 			#endif

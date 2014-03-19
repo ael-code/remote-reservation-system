@@ -30,12 +30,22 @@ struct thread_param{
 //Global variable
 struct server_option sopt;
 static int ssok;
+char load_from_file;
 
 
 void close_routine(int s){
 	#ifdef DEBUG
 	puts("starting close_routine()");
 	#endif
+	
+	extern struct res_entry * array;
+	int res = save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
+	if(res == -1){puts("error saving on file");}
+	if(sopt.verbose == 1){
+		if(sopt.colored)printf("\e[1;91mSaved reservations on file\e[0m\n");
+		else printf("Saved reservations on file\n");
+	}
+	
 	kill_all_threads();
 	if(sopt.verbose == 1){
 		if(sopt.colored)printf("\e[1;91mClosed all threads\e[0m\n");
@@ -333,18 +343,20 @@ int main (int argc, char **argv){
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
 	
+	load_from_file = file_exist(sopt.file);
+	
 	//load config from file if exist
-	if(sopt.file != NULL && file_exist(sopt.file)){
+	if(sopt.file != NULL && load_from_file){
 		load_server_opt();
 		//print
 		if(sopt.verbose){
 			printf("server options succesfully loaded from file \"%s\"\n\n",sopt.file);
 		}
-	}else if(sopt.file != NULL && !file_exist(sopt.file)){
+	}else if(sopt.file != NULL && !load_from_file){
 		save_server_opt();
 		//print
 		if(sopt.verbose){
-			printf("server options succesfully saved on file file \"%s\"\n\n",sopt.file);
+			printf("server options succesfully saved on file \"%s\"\n\n",sopt.file);
 		}
 	}
 	
@@ -353,6 +365,16 @@ int main (int argc, char **argv){
 	
 	//memmory structure initialization
 	reservation_init(sopt.map_rows*sopt.map_cols,sopt.pwd_length);
+	
+	if(sopt.file != NULL && load_from_file){
+		puts("loading reservation");
+		extern struct res_entry * array;
+		if(load_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length))){
+			puts("error loading reservation array from file");
+			close_routine(-1);
+		}
+	}
+	
 	
 	//thing pointed to by matrix is an array of map_cols char
 	char (*matrix)[sopt.map_cols] =(char (*)[sopt.map_cols]) get_matrix();

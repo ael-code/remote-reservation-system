@@ -8,7 +8,7 @@
 #include "chiavazione.h"
 #include "seats.h"
 
-static struct res_entry * array;
+struct res_entry * array;
 static struct res_entry * free_p; //pointer to the first free entry of array. It is NULL if there is no free cell
 static unsigned int array_dim;
 static unsigned int pwd_length;

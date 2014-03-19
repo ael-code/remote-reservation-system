@@ -5,8 +5,8 @@
 *	this is the unit that rapresent one reservation in reservation array
 */
 struct res_entry{
-	char * chiavazione; 		// pointer to chiavazione
 	int s_num; 					// number of seat involved in this reservation
+	char * chiavazione; 		// pointer to chiavazione
 	struct seat * seats;		// pointer to an array of seats (dimension s_num)
 };
 
