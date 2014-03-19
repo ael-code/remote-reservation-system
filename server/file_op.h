@@ -7,4 +7,6 @@ void load_server_opt();
 
 int file_exist(char * file);
 
+void file_close();
+
 #endif

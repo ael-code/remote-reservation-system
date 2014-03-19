@@ -30,7 +30,11 @@ struct thread_param{
 struct server_option sopt;
 static int ssok;
 
+
 void close_routine(int s){
+	#ifdef DEBUG
+	puts("starting close_routine()");
+	#endif
 	kill_all_threads();
 	if(sopt.verbose == 1){
 		if(sopt.colored)printf("\e[1;91mClosed all threads\e[0m\n");
@@ -47,6 +51,8 @@ void close_routine(int s){
 		if(sopt.colored)printf("\e[1;91mClosed main socket\e[0m\n");
 		else printf("Closed main socket\n");
 	}
+	
+	file_close();
 	pthread_exit(NULL);
 }
 
@@ -206,10 +212,10 @@ int start_listen_thread(){
 	addr.sin_addr.s_addr = INADDR_ANY;
 	
 	ssok = socket(AF_INET,SOCK_STREAM,0);
-	if(ssok == -1){perror("socket");return(-1);}
+	if(ssok == -1){perror("socket");close_routine(-1);}
 	
 	res = bind(ssok,(struct sockaddr *)&addr,sizeof(addr));
-	if(res == -1){perror("bind");return(-2);}
+	if(res == -1){perror("bind");close_routine(-1);}
 	
 	//if i choose to use a random port, i need to retrive the random port
 	if(sopt.port == 0){
@@ -223,15 +229,15 @@ int start_listen_thread(){
 	print_server_info();
 	
 	res = listen(ssok,sopt.backlog);
-	if(res == -1){perror("listen");return(-3);}
+	if(res == -1){perror("listen");close_routine(-1);}
 	
 	unsigned int size = sizeof(struct sockaddr_in);
 	while(1){
 		struct thread_param * t_param = calloc(1,sizeof(struct thread_param));
-		if(t_param == NULL){perror("start_listen_thread: calloc");exit(-5);}
+		if(t_param == NULL){perror("start_listen_thread: calloc");close_routine(-1);}
 		
 		t_param->sok = accept(ssok,(struct sockaddr *)&(t_param->addr),&size);
-		if(t_param->sok == -1){perror("accept");return(-4);}
+		if(t_param->sok == -1){perror("accept");close_routine(-1);}
 		pthread_create(&tid,NULL,dispatcher_thread,t_param);
 		add_thread(tid);
 	}
@@ -277,7 +283,6 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			if(state->arg_num < 2){
 				printf("ERROR: too few arguments\n");
 				argp_usage(state);
-				exit(1);
 			}
 			break;
 		default:
@@ -304,6 +309,7 @@ int main (int argc, char **argv){
 	
 	//add main to the thread list
 	add_thread(pthread_self());
+	
 	// server_option initialization (default)
 	sopt.port = 0;
 	sopt.backlog = 50;
@@ -356,5 +362,6 @@ int main (int argc, char **argv){
 	
 	start_listen_thread();
 	
+	close_routine(-1);
 	return 0;
 }

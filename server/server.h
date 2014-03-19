@@ -13,4 +13,7 @@ struct server_option{
 	unsigned int map_cols;
 };
 
+
+void close_routine(int s);
+
 #endif
