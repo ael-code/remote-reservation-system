@@ -15,23 +15,43 @@ void add_thread(pthread_t tid){
 }
 
 void del_thread(pthread_t tid){
+	
 	struct pthread_node fake_head;
 	fake_head.next = head;
 	
 	struct pthread_node * punt = &fake_head;
 	
 	while(punt->next != NULL){
-		if(punt->next->ptid == tid){
+		if(pthread_equal (punt->next->ptid,tid)){
 			punt->next = punt->next->next;
+			
+			#ifdef DEBUG
+			char name[22];
+			pthread_getname_np(pthread_self(),name,sizeof(name));
+			printf("deleted thread: \"%s\" from threads-struct\n");
+			#endif
+			
+			break;
 		}
 	}
 	head = fake_head.next;
 }
 
 void kill_all_threads(){
+	#ifdef DEBUG
+	char name[22];
+	pthread_getname_np(pthread_self(),name,sizeof(name));
+	printf("thread: \"%s\" is killing all other thread\n",name);
+	#endif
+	
 	struct pthread_node * punt = head;
 	while(punt != NULL){
-		if(punt->ptid != pthread_self()){
+		if(!pthread_equal(punt->ptid,pthread_self())){
+			#ifdef DEBUG
+			name[22];
+			pthread_getname_np(punt->ptid,name,sizeof(name));
+			printf("killing thread: \"%s\"\n",name);
+			#endif
 			if(pthread_cancel(punt->ptid))
 				puts("error closing thread");
 			pthread_join(punt->ptid,NULL);

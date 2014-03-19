@@ -1,6 +1,6 @@
 #!/bin/bash
 
-options="-I lib -O3 -g -Wall"
+options="-I lib -O3 -g -Wall -D DEBUG"
 
 echo "compiling client"
 gcc -o client/client.out client/client.c lib/seats.c lib/conversion.c $options

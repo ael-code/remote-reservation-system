@@ -178,7 +178,7 @@ void reservation(int sok){
 	
 	//send seats
 	res = send(sok,seats,sizeof(seats),0);
-	if(res == -1){perror("send");exit(-1);}
+	if(res <sizeof(seats)){perror("send seats data");exit(-1);}
 
 	//print
 	if(opt.verbose){

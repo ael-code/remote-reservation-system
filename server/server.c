@@ -22,7 +22,8 @@
 struct thread_param{
 	int sok;
 	struct sockaddr_in addr;
-	char ip[16];
+	char t_name[22]; //ip:port
+	//15 for ip , 1 for ':', 5 for port, 1 for '\0';
 };
 
 
@@ -62,7 +63,7 @@ void clean_thread_param(void * thread_parameter){
 	close(t_param->sok);
 	if(sopt.verbose == 1){
 		(sopt.colored)?printf("\e[1;91m<-\e[0m "):printf("<- ");
-		printf("Closed    %s:%d\n",t_param->ip,ntohs(t_param->addr.sin_port));
+		printf("Closed    %s\n",t_param->t_name);
 	}
 	free(thread_parameter);
 }
@@ -74,8 +75,10 @@ void * dispatcher_thread(void * thread_parameter){
 	int res;
 	struct thread_param * t_param = (struct thread_param *) thread_parameter;
 	
-	//store client ip
-	inet_ntop(AF_INET,&t_param->addr.sin_addr,t_param->ip,sizeof(t_param->ip));
+	//create name for thread
+	inet_ntop(AF_INET,&t_param->addr.sin_addr,t_param->t_name,sizeof(t_param->addr));
+	sprintf((t_param->t_name)+strlen(t_param->t_name),":%d",ntohs(t_param->addr.sin_port));
+	pthread_setname_np(pthread_self(), t_param->t_name);
 	
 	//routine to cleanup thread_parameter called on pthread_exit
 	pthread_cleanup_push(clean_thread_param,thread_parameter);
@@ -83,13 +86,13 @@ void * dispatcher_thread(void * thread_parameter){
 	// print info
 	if(sopt.verbose == 1){
 		(sopt.colored)?printf("\e[1;92m->\e[0m "):printf("-> ");
-		printf("Connected %s:%d\n",t_param->ip,ntohs(t_param->addr.sin_port));
+		printf("Connected %s\n",t_param->t_name);
 	}
 	
 	//recive header
 	char req_header[HEADER_DIM];
 	res = recv(t_param->sok,req_header,HEADER_DIM,0);
-	if(res == -1){perror("recive request header");pthread_exit(NULL);}
+	if(res == -1){perror("recive request header");del_thread(pthread_self());pthread_exit(NULL);}
 	req_header[HEADER_DIM-1] = '\0';
 	
 	
@@ -97,23 +100,23 @@ void * dispatcher_thread(void * thread_parameter){
 		//reply MAP_RESPONSE
 		char resp[HEADER_DIM] = "MAP_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
-		if(res == -1){perror("send MAP_RESPONSE");pthread_exit(NULL);}
+		if(res == -1){perror("send MAP_RESPONSE");del_thread(pthread_self());pthread_exit(NULL);}
 		//send map dimension
 		unsigned int dim[2];
 		dim[0] = sopt.map_rows;
 		dim[1] = sopt.map_cols;
 		res = send(t_param->sok,dim,sizeof(dim),0);
-		if(res == -1){perror("send map dimension");pthread_exit(NULL);}
+		if(res == -1){perror("send map dimension");del_thread(pthread_self());pthread_exit(NULL);}
 		//send map
 		char * matrix = get_matrix();
 		res = send(t_param->sok,matrix,sopt.map_rows*sopt.map_cols,0);
-		if(res == -1){perror("send map dimension");pthread_exit(NULL);}			
+		if(res == -1){perror("send map dimension");del_thread(pthread_self());pthread_exit(NULL);}			
 	
 	}else if(strcmp(req_header,"RESERVATION") == 0){
 		//reply PREN_RESPONSE
 		char resp[HEADER_DIM] = "RESV_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
-		if(res == -1){perror("send RESV_RESPONSE");pthread_exit(NULL);}
+		if(res == -1){perror("send RESV_RESPONSE");del_thread(pthread_self());pthread_exit(NULL);}
 		
 		//receive number of seats
 		unsigned int seats_num = 0;
@@ -121,7 +124,7 @@ void * dispatcher_thread(void * thread_parameter){
 		if(res < sizeof(seats_num)){
 			if(res == -1)perror("receive number of seats");
 			else puts("Error: recived invalid seats num");
-			pthread_exit(NULL);
+			del_thread(pthread_self());pthread_exit(NULL);
 		}
 		
 		//receive seats
@@ -130,7 +133,7 @@ void * dispatcher_thread(void * thread_parameter){
 		if(res < sizeof(seats)){
 			if(res == -1)perror("receive seats");
 			else puts("Error: mismatch of seats number recived");
-			pthread_exit(NULL);
+			del_thread(pthread_self());pthread_exit(NULL);
 		}
 		
 		char * chiavazione = reservation_perform(seats_num,seats);
@@ -139,44 +142,44 @@ void * dispatcher_thread(void * thread_parameter){
 			//send confirmation
 			char aff[HEADER_DIM] = "RESV_AFFERMATIVE";
 			res = send(t_param->sok,aff,HEADER_DIM,0);
-			if(res == -1){perror("send RESV_AFFERMATIVE");reservation_delete(chiavazione);pthread_exit(NULL);}
+			if(res == -1){perror("send RESV_AFFERMATIVE");reservation_delete(chiavazione);del_thread(pthread_self());pthread_exit(NULL);}
 			//send chiavazione dim
 			unsigned int key_dim = strlen(chiavazione)+1;
 			res = send(t_param->sok,&key_dim,sizeof(key_dim),0);
-			if(res == -1){perror("send chiavazione dimension");reservation_delete(chiavazione);pthread_exit(NULL);}
+			if(res == -1){perror("send chiavazione dimension");reservation_delete(chiavazione);del_thread(pthread_self());pthread_exit(NULL);}
 			//send chiavazione
 			res = send(t_param->sok,chiavazione,key_dim,0);
 			if(res < key_dim){
 				if(res == -1)perror("send chiavazione");
 				else puts("Error: sending chiavazione failed");
 				reservation_delete(chiavazione);
-				pthread_exit(NULL);
+				del_thread(pthread_self());pthread_exit(NULL);
 			}
 		}else{
 			char neg[HEADER_DIM] = "RESV_NEGATIVE";
 			res = send(t_param->sok,neg,HEADER_DIM,0);
-			if(res == -1){perror("send RESV_NEGATIVE");pthread_exit(NULL);}
+			if(res == -1){perror("send RESV_NEGATIVE");del_thread(pthread_self());pthread_exit(NULL);}
 		}
 		
 	}else if(strcmp(req_header,"CANCEL") == 0){
 		//reply with response
 		char resp[HEADER_DIM] = "CANC_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
-		if(res == -1){perror("send CANC_RESPONSE");pthread_exit(NULL);}
+		if(res == -1){perror("send CANC_RESPONSE");del_thread(pthread_self());pthread_exit(NULL);}
 		//receive chiavazione
 		unsigned int chiav_dim = get_chiavazione_length(sopt.map_rows*sopt.map_cols-1,sopt.pwd_length);
 		char chiavazione[chiav_dim+1];
 		res = recv(t_param->sok,chiavazione,sizeof(chiavazione),0);
-		if(res == -1){perror("receive chiavazione");pthread_exit(NULL);}
+		if(res == -1){perror("receive chiavazione");del_thread(pthread_self());pthread_exit(NULL);}
 		
 		if(res < sizeof(chiavazione) || reservation_delete(chiavazione)){
 			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
-			if(res == -1){perror("send CANCEL NEGATIVE");pthread_exit(NULL);}
+			if(res == -1){perror("send CANCEL NEGATIVE");del_thread(pthread_self());pthread_exit(NULL);}
 		}else{
 			char confirm[HEADER_DIM] = "CANC_AFFERMATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
-			if(res == -1){perror("send CANCEL POSITIVE");pthread_exit(NULL);}
+			if(res == -1){perror("send CANCEL POSITIVE");del_thread(pthread_self());pthread_exit(NULL);}
 		}
 		
 	}else{
@@ -185,7 +188,7 @@ void * dispatcher_thread(void * thread_parameter){
 		}
 		char resp[HEADER_DIM] ="BAD_REQUEST";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
-		if(res == -1){perror("send MAP_RESPONSE");pthread_exit(NULL);}
+		if(res == -1){perror("send MAP_RESPONSE");del_thread(pthread_self());pthread_exit(NULL);}
 	}
 	
 	pthread_cleanup_pop(1);
