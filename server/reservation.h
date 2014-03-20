@@ -20,4 +20,6 @@ int reservation_delete(char * chiavazione);
 
 struct res_entry * get_reservation(char * chiavazione);
 
+void update_freep();
+
 #endif

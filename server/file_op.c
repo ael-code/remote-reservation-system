@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include "server.h"
 #include "conversion.h"
@@ -40,7 +41,7 @@ void load_server_opt(){
 	//save file name
 	char * temp_name = sopt.file;
 	
-	des_f = open(sopt.file,0660);
+	des_f = open(sopt.file,O_RDWR|0660);
 	if(des_f == -1){perror("loading server option from file");exit(-1);}
 	
 	res = read(des_f,&sopt, sizeof(sopt));
@@ -65,6 +66,7 @@ int file_exist(char * file){
 }
 
 void file_close(){
+	printf("closing \"%s\"",sopt.file);//debug
 	if(close(des_f) == -1)
 		perror("closing file");
 }
@@ -72,6 +74,7 @@ void file_close(){
 int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
 	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
 	if(res == -1){ perror("lseek in save_reservation_array");return(-1);}
+	printf("start saving from %d offset\n",res);//debug
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
@@ -118,6 +121,7 @@ int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
 	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
 	if(res == -1){ perror("lseek in save_reservation_array");return(-1);}
+	printf("start loading from %d offset\n",res);//debug
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
@@ -166,6 +170,7 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 		}
 		punt++;	
 	}
+	update_freep();
 	return 0;
 }
 
