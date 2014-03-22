@@ -18,9 +18,9 @@ static int des_f;
 
 void save_server_opt(){
 
-	des_f = open(sopt.file,O_RDWR|O_TRUNC|0660);
+	des_f = open(sopt.file,O_RDWR|O_TRUNC);
 	if(des_f == -1){
-		des_f = open(sopt.file,O_CREAT|O_RDWR|O_TRUNC|0660);
+		des_f = open(sopt.file,O_CREAT|O_RDWR|O_TRUNC,0660);
 		if(des_f == -1){perror("creating file");exit(-1);}
 	}
 		
@@ -41,7 +41,7 @@ void load_server_opt(){
 	//save file name
 	char * temp_name = sopt.file;
 	
-	des_f = open(sopt.file,O_RDWR|0660);
+	des_f = open(sopt.file,O_RDWR);
 	if(des_f == -1){perror("loading server option from file");exit(-1);}
 	
 	res = read(des_f,&sopt, sizeof(sopt));
