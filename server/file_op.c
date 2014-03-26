@@ -117,7 +117,7 @@ int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 
 int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
 	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
-	if(res == -1){ perror("lseek in save_reservation_array");return(-1);}
+	if(res == -1){ perror("lseek in load_reservation_array");return(-1);}
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
