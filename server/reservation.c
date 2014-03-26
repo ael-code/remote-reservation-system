@@ -19,21 +19,32 @@ static int res;
 *	update the pointer "free_p" searching for the next free entries.
 *	If there aren't free entries it sets free_p to NULL
 */
-void update_freep(){
-	//should never happen
-	//if(free_p == NULL){puts("update_freep() find NULL pointer");exit(-1);} 
+void update_freep(unsigned int index){
 	
-	//find next free entry of array
-	struct res_entry * temp = free_p+1;
-	while(temp-array < array_dim){
-		if(temp->s_num == 0){
-			free_p=temp;
-			return;
+	//paranoic control
+	if(index >= array_dim){perror("reservation.c: index out of bounds in update_freep()");exit(-1);}
+	
+	//case entry was freed
+	if((array+index)->s_num == 0){
+		//if this entry is upper then the one pointed by free_p, update free_p
+		if(free_p == NULL || free_p-array > index )		
+			free_p = array+index;
+			
+	//case entry was occupied
+	}else{
+		//find next free entry of array
+		struct res_entry * temp = free_p+1;
+		while(temp-array < array_dim){
+			if(temp->s_num == 0){
+				free_p=temp;
+				return;
+			}
+			temp++;
 		}
-		temp++;
+		//not found any available entry
+		free_p = NULL;
 	}
-	//not found any available entry
-	free_p = NULL;
+	
 }
 
 void reservation_close(){
@@ -115,13 +126,13 @@ char * reservation_perform(int s_num,struct seat * seats){
 	if(res == -1){perror("semop, waiting free pointer");exit(-1);}
 	
 	//save the current free_p
-	struct res_entry * my_entry = free_p;	
-	
-	//find the new free entry
-	update_freep();
+	struct res_entry * my_entry = free_p;
 	
 	//mark my_entry as occupied
 	my_entry->s_num = s_num;
+	
+	//find the new free entry
+	update_freep(free_p-array);
 	
 	//release free_p semaphore
 	sops.sem_op = 1;
@@ -163,7 +174,7 @@ int reservation_delete(char * chiavazione){
 	array[index].seats = NULL;
 
 	int temp_s_num = array[index].s_num;
-	array[index].s_num = 0; //critic, after this operation this res_entry result free
+	
 	
 	/* FREE POINTER ACCESS */
 	
@@ -175,9 +186,13 @@ int reservation_delete(char * chiavazione){
 	res = semop(semid,&sops,sizeof(sops)/sizeof(struct sembuf));
 	if(res == -1){perror("semop, waiting free pointer");exit(-1);}
 	
-	//if this entry is upper then the one pointed by free_p, update free_p
-	if(free_p == NULL || free_p-array > index )		
-		free_p = &array[index];
+	/*	critic! after this operation this res_entry result free
+	* 	can't stay before pointer access cause could become occupied 
+	* 	before updating free pointer for this entry
+	*/
+	array[index].s_num = 0;
+	
+	update_freep(index);
 	
 	//release free_p semaphore
 	sops.sem_op = 1;
@@ -210,5 +225,48 @@ struct res_entry * get_reservation(char * chiavazione){
 		return NULL;
 	
 	return array+index;
+}
+
+int insert_res_in_array(unsigned int index, struct res_entry * reservation){
+	//return -1 if index is out of bounds
+	if(index >= array_dim)return -1;
+	
+	//paranoic control
+	if(free_p == NULL || free_p != array+index) return -1;
+	
+	//control if seats respect constraints
+	if(control_seats(reservation->s_num,reservation->seats))return -1;
+	
+	occupy_seats(reservation->s_num, reservation->seats);
+	
+	//fill in res_entry
+	array[index].s_num = reservation->s_num;
+	array[index].seats = reservation->seats;
+	array[index].chiavazione = reservation->chiavazione;
+
+	//find the new free entry
+	update_freep(index);
+	
+	return 0;
+}
+int remove_res_from_array(unsigned int index){
+	//return -1 if index is out of bounds
+	if(index >= array_dim)return -1;
+	
+	free_seats(array[index].s_num, array[index].seats);
+	
+	//clean res_entry
+	array[index].s_num = 0;
+	free(array[index].chiavazione);
+	array[index].chiavazione = NULL;
+	free(array[index].seats);
+	array[index].seats = NULL;
+	
+	update_freep(index);
+	
+	
+	
+	return 0;
+	
 }
 

@@ -66,7 +66,6 @@ int file_exist(char * file){
 }
 
 void file_close(){
-	printf("closing \"%s\"",sopt.file);//debug
 	if(close(des_f) == -1)
 		perror("closing file");
 }
@@ -74,7 +73,6 @@ void file_close(){
 int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
 	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
 	if(res == -1){ perror("lseek in save_reservation_array");return(-1);}
-	printf("start saving from %d offset\n",res);//debug
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
@@ -91,7 +89,6 @@ int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 		
 		if(punt->s_num != 0){
 				
-			print_SeatsArray(punt->s_num,punt->seats); //debug
 			//write chiavazione
 			res = write(des_f,punt->chiavazione,chiav_dim);
 			if(res < chiav_dim){
@@ -121,7 +118,6 @@ int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
 	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
 	if(res == -1){ perror("lseek in save_reservation_array");return(-1);}
-	printf("start loading from %d offset\n",res);//debug
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
@@ -164,7 +160,6 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 				return(-1);
 			}
 			
-			print_SeatsArray(punt->s_num,punt->seats);//debug
 			//refill matrix
 			occupy_seats(punt->s_num,punt->seats);
 		}
@@ -172,5 +167,67 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 	}
 	update_freep();
 	return 0;
+}
+int save_delta_del(unsigned int index){
+	struct d_delta{
+		char op;
+		unsigned int i;
+	} d_delta;
+	d_delta.op = 'D';
+	d_delta.i = index;
+
+	res = write(des_f,&d_delta,sizeof(d_delta));
+	if(res < sizeof(d_delta)){
+		if(res == -1)
+			perror("writing d_delta on file");
+		else
+			puts("error: writing d_delta on file");
+		return -1;
+	}
+	return 0;	
+}
+
+int save_delta_add(unsigned int index, struct res_entry * reservation){
+	struct s_delta{
+		char op;
+		unsigned int i;
+		unsigned int s_num;
+	} s_delta;
+	
+	s_delta.op = 'A';
+	s_delta.i = index;
+	s_delta.s_num = reservation->s_num;
+	
+	res = write(des_f,&s_delta,sizeof(s_delta));
+	if(res < sizeof(s_delta)){
+		if(res == -1)
+			perror("writing s_delta on file");
+		else
+			puts("error: writing s_delta on file");
+		return(-1);
+	}
+	
+	//write seats
+	res = write(des_f,reservation->seats,sizeof(struct seat)*reservation->s_num);
+	if(res < sizeof(struct seat)*reservation->s_num){
+		if(res == -1)
+			perror("writing seats on file");
+		else
+			puts("error: writing seats on file");
+		return(-1);
+	}
+	
+	//write chiavazione
+	unsigned int size_chiav = strlen(reservation->chiavazione);
+	res = write(des_f,reservation->chiavazione,size_chiav);
+	if(res < size_chiav){
+		if(res == -1)
+			perror("writing chivazione on file");
+		else
+			puts("error: writing chiavazione on file");
+		return(-1);
+	}
+	
+	return 0;		
 }
 

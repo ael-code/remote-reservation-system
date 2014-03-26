@@ -62,6 +62,7 @@ unsigned int get_chiavazione_index(char * chiavazione, unsigned int max_index){
 /*
 *	Return the length for a chiavazione 
 *	whith this max_inex and this pwd length
+*    (doesn't include '\0')
 */
 unsigned int get_chiavazione_length(unsigned int max_index,unsigned int pwd_length){
 	return int_to_charc(max_index)+pwd_length;
