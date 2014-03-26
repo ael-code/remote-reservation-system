@@ -37,7 +37,6 @@ void close_routine(int s){
 	#ifdef DEBUG
 	puts("starting close_routine()");
 	#endif
-	//Saving on file before performing request, in case of crash: saving the server_opt struct isn't needed because it doesn't change
 	extern struct res_entry * array;
 	int res = save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
 	
@@ -107,7 +106,7 @@ void * dispatcher_thread(void * thread_parameter){
 	req_header[HEADER_DIM-1] = '\0';
 	
 	
-	if(strcmp(req_header,"MAP_REQUEST") == 0){ //saving isn't needed because this request doesn't modify matrix
+	if(strcmp(req_header,"MAP_REQUEST") == 0){ 
 		//reply MAP_RESPONSE
 		char resp[HEADER_DIM] = "MAP_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
@@ -146,9 +145,7 @@ void * dispatcher_thread(void * thread_parameter){
 			else puts("Error: mismatch of seats number recived");
 			del_thread(pthread_self());pthread_exit(NULL);
 		}
-		//Saving on file before performing request, in case of crash: saving the server_opt struct isn't needed because it doesn't change
-		extern struct res_entry * array;
-		save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
+		
 		//Performing reservation request
 		char * chiavazione = reservation_perform(seats_num,seats);
 		
@@ -185,11 +182,6 @@ void * dispatcher_thread(void * thread_parameter){
 		char chiavazione[chiav_dim+1];
 		res = recv(t_param->sok,chiavazione,sizeof(chiavazione),0);
 		if(res == -1){perror("receive chiavazione");del_thread(pthread_self());pthread_exit(NULL);}
-		
-		//Saving on file before performing request, in case of crash: saving the server_opt struct isn't needed because it doesn't change
-		extern struct res_entry * array;
-		save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
-		
 		//Performing reservation delete request
 		if(res < sizeof(chiavazione) || reservation_delete(chiavazione)){
 			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
