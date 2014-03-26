@@ -22,7 +22,7 @@ static int res;
 void update_freep(unsigned int index){
 	
 	//paranoic control
-	if(index >= array_dim){perror("reservation.c: index out of bounds in update_freep()");exit(-1);}
+	if(index >= array_dim){puts("reservation.c: index out of bounds in update_freep()");exit(-1);}
 	
 	//case entry was freed
 	if((array+index)->s_num == 0){

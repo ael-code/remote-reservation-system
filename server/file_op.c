@@ -165,7 +165,7 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 		}
 		punt++;	
 	}
-	update_freep();
+	update_freep(0);
 	return 0;
 }
 int save_delta_del(unsigned int index){
