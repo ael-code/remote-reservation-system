@@ -37,9 +37,10 @@ void close_routine(int s){
 	#ifdef DEBUG
 	puts("starting close_routine()");
 	#endif
-	
+	//Saving on file before performing request, in case of crash: saving the server_opt struct isn't needed because it doesn't change
 	extern struct res_entry * array;
 	int res = save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
+	
 	if(res == -1){puts("error saving on file");}
 	if(sopt.verbose == 1){
 		if(sopt.colored)printf("\e[1;91mSaved reservations on file\e[0m\n");
@@ -99,14 +100,14 @@ void * dispatcher_thread(void * thread_parameter){
 		printf("Connected %s\n",t_param->t_name);
 	}
 	
-	//recive header
+	//receive header
 	char req_header[HEADER_DIM];
 	res = recv(t_param->sok,req_header,HEADER_DIM,0);
 	if(res == -1){perror("recive request header");del_thread(pthread_self());pthread_exit(NULL);}
 	req_header[HEADER_DIM-1] = '\0';
 	
 	
-	if(strcmp(req_header,"MAP_REQUEST") == 0){
+	if(strcmp(req_header,"MAP_REQUEST") == 0){ //saving isn't needed because this request doesn't modify matrix
 		//reply MAP_RESPONSE
 		char resp[HEADER_DIM] = "MAP_RESPONSE";
 		res = send(t_param->sok,resp,HEADER_DIM,0);
@@ -120,7 +121,7 @@ void * dispatcher_thread(void * thread_parameter){
 		//send map
 		char * matrix = get_matrix();
 		res = send(t_param->sok,matrix,sopt.map_rows*sopt.map_cols,0);
-		if(res == -1){perror("send map dimension");del_thread(pthread_self());pthread_exit(NULL);}			
+		if(res == -1){perror("send map");del_thread(pthread_self());pthread_exit(NULL);}			
 	
 	}else if(strcmp(req_header,"RESERVATION") == 0){
 		//reply PREN_RESPONSE
@@ -145,7 +146,10 @@ void * dispatcher_thread(void * thread_parameter){
 			else puts("Error: mismatch of seats number recived");
 			del_thread(pthread_self());pthread_exit(NULL);
 		}
-		
+		//Saving on file before performing request, in case of crash: saving the server_opt struct isn't needed because it doesn't change
+		extern struct res_entry * array;
+		save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
+		//Performing reservation request
 		char * chiavazione = reservation_perform(seats_num,seats);
 		
 		if(chiavazione != NULL){
@@ -182,6 +186,11 @@ void * dispatcher_thread(void * thread_parameter){
 		res = recv(t_param->sok,chiavazione,sizeof(chiavazione),0);
 		if(res == -1){perror("receive chiavazione");del_thread(pthread_self());pthread_exit(NULL);}
 		
+		//Saving on file before performing request, in case of crash: saving the server_opt struct isn't needed because it doesn't change
+		extern struct res_entry * array;
+		save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
+		
+		//Performing reservation delete request
 		if(res < sizeof(chiavazione) || reservation_delete(chiavazione)){
 			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
@@ -200,7 +209,7 @@ void * dispatcher_thread(void * thread_parameter){
 		res = send(t_param->sok,resp,HEADER_DIM,0);
 		if(res == -1){perror("send MAP_RESPONSE");del_thread(pthread_self());pthread_exit(NULL);}
 	}
-	
+
 	pthread_cleanup_pop(1);
 	del_thread(pthread_self());
 	pthread_exit(NULL);
