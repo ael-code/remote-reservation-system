@@ -38,12 +38,15 @@ void close_routine(int s){
 	puts("starting close_routine()");
 	#endif
 	extern struct res_entry * array;
-	int res = save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
 	
-	if(res == -1){puts("error saving on file");}
-	if(sopt.verbose == 1){
-		if(sopt.colored)printf("\e[1;91mSaved reservations on file\e[0m\n");
-		else printf("Saved reservations on file\n");
+	if(sopt.file != NULL && load_from_file){
+		int res = save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length ((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
+	
+		if(res == -1){puts("error saving on file");}
+		if(sopt.verbose == 1){
+			if(sopt.colored)printf("\e[1;91mSaved reservations on file\e[0m\n");
+			else printf("Saved reservations on file\n");
+		}
 	}
 	
 	kill_all_threads();
