@@ -140,7 +140,7 @@ int reservation_perform(int s_num,struct seat * seats, struct res_entry ** r_ent
 		
 	//we need to do a copy of seats because it frees after thread exit 
 	void * seats_mem = malloc(sizeof(struct seat)*s_num);
-	if(seats_mem==NULL){perror("reservation_perform(): malloc");exit(-1);}
+	if(seats_mem==NULL){perror("reservation_perform(): malloc");exit(-1);} 
 	
 	//seats in my_entry have to point to the copy of seats 
 	my_entry->seats = memcpy(seats_mem,seats,sizeof(struct seat)*s_num);
@@ -153,7 +153,7 @@ int reservation_perform(int s_num,struct seat * seats, struct res_entry ** r_ent
 		//exit(-1);
 	//}
 	*r_entry = my_entry;
-	return my_entry-reserv_array;	
+	return my_entry-reserv_array;
 }
 
 int reservation_delete(char * chiavazione){
