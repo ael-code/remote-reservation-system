@@ -16,7 +16,7 @@ void reservation_close();
 
 void reservation_init(unsigned int max_rese,unsigned int pwd_length);
 
-char * reservation_perform(int s_num,struct seat * seats);
+int reservation_perform(int s_num,struct seat * seats,struct res_entry** r_entry);
 
 int reservation_delete(char * chiavazione);
 

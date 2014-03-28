@@ -77,15 +77,15 @@ void reservation_init(unsigned int max_rese,unsigned int pwd_l){
 	
 }
 
-char * reservation_perform(int s_num,struct seat * seats){
+int reservation_perform(int s_num,struct seat * seats, struct res_entry ** r_entry){
 	//prima effettua la prenotazione e poi salvala nell'array altrimenti bloccheresti tutti gli altri. 
 	//Al massimo puoi controllare che siano rimasti posti liberi
 	
 	//if there aren't free entries return NULL
-	if(free_p == NULL) return NULL;
+	if(free_p == NULL) return -1;
 	
 	//control if seats respect constraints
-	if(control_seats(s_num, seats))return NULL;
+	if(control_seats(s_num, seats))return -1;
 	
 	/* MATRIX ACCESS */
 	wait_master_semaphore();
@@ -97,7 +97,7 @@ char * reservation_perform(int s_num,struct seat * seats){
 	if(!seats_available(s_num, seats)){
 		if(lock_res) exclusive_release_seats(s_num, seats);
 		else release_seats(s_num, seats);
-		return NULL;
+		return -1;
 	}
 		
 	//occupy seats
@@ -148,12 +148,12 @@ char * reservation_perform(int s_num,struct seat * seats){
 	my_entry->chiavazione = chiavazione_gen(my_entry-reserv_array,array_dim-1,pwd_length);
 	
 	//save delta on file
-	if(save_delta_add(my_entry - reserv_array, my_entry)){
-		puts("reservation.c: error on save_delta_add()");
-		exit(-1);
-	}
-	
-	return my_entry->chiavazione;	
+	//if(save_delta_add(my_entry - reserv_array, my_entry)){
+		//puts("reservation.c: error on save_delta_add()");
+		//exit(-1);
+	//}
+	*r_entry = my_entry;
+	return my_entry-reserv_array;	
 }
 
 int reservation_delete(char * chiavazione){
@@ -210,19 +210,13 @@ int reservation_delete(char * chiavazione){
 	
 	/* END MATRIX ACCESS */
 	
-	//save delta del
-	if(save_delta_del(index)){
-		puts("reservation.c: save_delta_del()");
-		exit(-1);
-	}
-	
 	//free chiavazione
 	free(temp_chiavazione);
 	
 	//free seats structure
 	free(temp_seats);
 	
-	return 0;
+	return index;
 }
 
 struct res_entry * get_reservation(char * chiavazione){

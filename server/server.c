@@ -141,9 +141,16 @@ void * dispatcher_thread(void * thread_parameter){
 		}
 		
 		//Performing reservation request
-		char * chiavazione = reservation_perform(seats_num,seats);
+		struct res_entry * r_entry;
+		int index = reservation_perform(seats_num,seats, &r_entry);
+		char* chiavazione = r_entry->chiavazione;
 		
-		if(chiavazione != NULL){
+		if(index != -1){
+			//save delta on file
+			if(sopt.file != NULL && (save_delta_add(index, r_entry)==-1) ){
+				puts("error: server.c: error on save_delta_add()");
+				close_routine(-1);
+			}	
 			//send confirmation
 			char aff[HEADER_DIM] = "RESV_AFFERMATIVE";
 			res = send(t_param->sok,aff,HEADER_DIM,0);
@@ -177,11 +184,17 @@ void * dispatcher_thread(void * thread_parameter){
 		res = recv(t_param->sok,chiavazione,sizeof(chiavazione),0);
 		if(res == -1){perror("receive chiavazione");del_thread(pthread_self());pthread_exit(NULL);}
 		//Performing reservation delete request
-		if(res < sizeof(chiavazione) || reservation_delete(chiavazione)){
+		int index;
+		if(res < sizeof(chiavazione) || (index = reservation_delete(chiavazione))==-1){
 			char confirm[HEADER_DIM] = "CANC_NEGATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
 			if(res == -1){perror("send CANCEL NEGATIVE");del_thread(pthread_self());pthread_exit(NULL);}
 		}else{
+			//save delta del
+			if(sopt.file!=NULL && save_delta_del(index)==-1){
+				puts("error: server.c: save_delta_del()");
+				close_routine(-1);
+			}
 			char confirm[HEADER_DIM] = "CANC_AFFERMATIVE";
 			res = send(t_param->sok,confirm,HEADER_DIM,0);
 			if(res == -1){perror("send CANCEL POSITIVE");del_thread(pthread_self());pthread_exit(NULL);}
