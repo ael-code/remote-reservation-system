@@ -143,9 +143,9 @@ void * dispatcher_thread(void * thread_parameter){
 		//Performing reservation request
 		struct res_entry * r_entry;
 		int index = reservation_perform(seats_num,seats, &r_entry);
-		char* chiavazione = r_entry->chiavazione;
 		
 		if(index != -1){
+			char* chiavazione = r_entry->chiavazione;
 			//save delta on file
 			if(sopt.file != NULL && (save_delta_add(index, r_entry)==-1) ){
 				puts("error: server.c: error on save_delta_add()");

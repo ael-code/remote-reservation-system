@@ -5,6 +5,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+
 #include "server.h"
 #include "conversion.h"
 #include "reservation.h"
@@ -14,6 +17,7 @@
 static int res;
 extern struct server_option sopt;
 static int des_f;
+static int des_sem;
 
 int file_exist(char * file){
 	struct stat s;
@@ -21,8 +25,11 @@ int file_exist(char * file){
 }
 
 int file_close(){
+	int res = semctl(des_sem,0,IPC_RMID);
+	if(res == -1){perror("deleting des_sem in file_op.c");return -1;}
+	
 	if(close(des_f) == -1){
-		perror("closing file");
+		perror("file_open(): closing file");
 		return -1;
 	}
 	return 0;
@@ -32,8 +39,16 @@ int file_open(){
 	des_f = open(sopt.file,O_RDWR);
 	if(des_f == -1){
 		des_f = open(sopt.file,O_CREAT|O_RDWR,0660);
-		if(des_f == -1){perror("creating file");return(-1);}
+		if(des_f == -1){perror("file_open(): creating file");return(-1);}
 	}
+	des_sem = semget(IPC_PRIVATE,1,0600);
+	if(des_sem == -1){
+		perror("file_open(): installing semaphore");
+		return -1;
+	}
+	int res = semctl(des_sem, 0, SETVAL, 1);
+	if(res == -1){perror("semctl in file_open()");return(-1);}
+
 	return 0;
 }
 
@@ -165,7 +180,28 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 	update_freep(0);
 	return 0;
 }
+static int file_enter(){
+	struct sembuf sops;
+	sops.sem_num = 0;
+	sops.sem_op =	-1;
+	sops.sem_flg = 0;
+	int res = semop(des_sem,&sops,1);
+	if(res == -1){perror("semop, file enter");return(-1);}
+	
+	return 0;
+}
+static int file_exit(){
+	struct sembuf sops;
+	sops.sem_num = 0;
+	sops.sem_op =	1;
+	sops.sem_flg = 0;
+	int res = semop(des_sem,&sops,1);
+	if(res == -1){perror("semop, file exit");return(-1);}
+
+	return 0;
+}
 int save_delta_del(unsigned int index){
+	if(file_enter() ==-1) return -1;
 	
 	//write operation character
 	char op = 'D';
@@ -187,10 +223,12 @@ int save_delta_del(unsigned int index){
 			puts("error: writing index on file");
 		return -1;
 	}
+	if(file_exit()==-1) return -1;
 	return 0;	
 }
 
 int save_delta_add(unsigned int index, struct res_entry * reservation){
+	if(file_enter() ==-1) return -1;
 	
 	//write operation character
 	char op = 'A';
@@ -243,6 +281,8 @@ int save_delta_add(unsigned int index, struct res_entry * reservation){
 		return(-1);
 	}
 	
+	if(file_exit()==-1) return -1;
+
 	return 0;		
 }
 
