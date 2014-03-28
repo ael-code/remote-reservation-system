@@ -10,6 +10,8 @@ struct res_entry{
 	struct seat * seats;		// pointer to an array of seats (dimension s_num)
 };
 
+void update_freep(unsigned int index);
+
 void reservation_close();
 
 void reservation_init(unsigned int max_rese,unsigned int pwd_length);
@@ -20,6 +22,18 @@ int reservation_delete(char * chiavazione);
 
 struct res_entry * get_reservation(char * chiavazione);
 
-void update_freep();
+/*
+* insert this @reservation in array directly. It doesn't involve semaphores (use sequentially).
+* Should be used ONLY to populate array during delta loading.
+* Used by load_delta() in file_op.
+*/
+int insert_res_in_array(unsigned int index, struct res_entry * reservation);
+
+/*
+* remove the reservation at @index position in array directly. It doesn't involve semaphores (use sequentially).
+* Should be used ONLY to populate array during delta loading.
+* Used by load_delta() in file_op.
+*/
+int remove_res_from_array(unsigned int index);
 
 #endif

@@ -8,9 +8,10 @@ struct server_option{
 	char colored;							// 0 = false; 1=true; dafault 0
 	char verbose;							// 0 = false; 1=true; default 0
 	char * file;							
-	unsigned int pwd_length;
 	unsigned int map_rows;
 	unsigned int map_cols;
+	unsigned int pwd_length;
+	unsigned int chiavazione_length;
 };
 
 

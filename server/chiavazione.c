@@ -68,6 +68,10 @@ unsigned int get_chiavazione_length(unsigned int max_index,unsigned int pwd_leng
 	return int_to_charc(max_index)+pwd_length;
 }
 
+unsigned int get_seed_length(){
+	return strlen(seed);
+}
+
 /*
 * Needed to initialize seed for rand() function
 */

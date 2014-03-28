@@ -13,9 +13,9 @@
 #include "chiavazione.h"
 #include "seats.h"
 #include "rrs_protocol.h"
+#include "file_op.h"
 #include "reservation.h"
 #include "server.h"
-#include "file_op.h"
 #include "threads.h"
 
 //struct to store dispatcher thread paramenter
@@ -26,29 +26,20 @@ struct thread_param{
 	//15 for ip , 1 for ':', 5 for port, 1 for '\0';
 };
 
-
 //Global variable
 struct server_option sopt;
 static int ssok;
 char load_from_file;
 
-
+void print_info(){
+	if(sopt.colored)
+		printf("\e[1;33mInfo: \e[0m");
+	else
+		printf("Info: ");
+}
 void close_routine(int s){
-	#ifdef DEBUG
-	puts("starting close_routine()");
-	#endif
-	extern struct res_entry * array;
-	
-	if(sopt.file != NULL && load_from_file){
-		int res = save_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length ((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length));
-	
-		if(res == -1){puts("error saving on file");}
-		if(sopt.verbose == 1){
-			if(sopt.colored)printf("\e[1;91mSaved reservations on file\e[0m\n");
-			else printf("Saved reservations on file\n");
-		}
-	}
-	
+	print_info();puts("starting close_routine()");
+		
 	kill_all_threads();
 	if(sopt.verbose == 1){
 		if(sopt.colored)printf("\e[1;91mClosed all threads\e[0m\n");
@@ -297,7 +288,7 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			}break;
 		case ARGP_KEY_END:
 			printf ("\n");
-			if(state->arg_num < 2){
+			if( (sopt.file == NULL || (sopt.file != NULL && file_exist(sopt.file) == 0) ) && state->arg_num < 2 ){
 				printf("ERROR: too few arguments\n");
 				argp_usage(state);
 			}
@@ -308,9 +299,10 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 	return 0;
 }
 
+
 int main (int argc, char **argv){
 	
-	//signal
+	/* Signal section */
 	sigset_t set;
 	if(sigfillset(&set)){ perror("filling set of signals"); exit(-1);}
 	struct sigaction sig_act;
@@ -323,6 +315,7 @@ int main (int argc, char **argv){
 	if(sigaction(SIGHUP,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
 	if(sigaction(SIGQUIT,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
 	if(sigaction(SIGILL,&sig_act,NULL)){ perror("sigaction sigint"); exit(-1);}
+	/* END Signal section */
 	
 	//add main to the thread list
 	add_thread(pthread_self());
@@ -332,7 +325,11 @@ int main (int argc, char **argv){
 	sopt.backlog = 50;
 	sopt.colored =0;
 	sopt.verbose =0;
+	sopt.file = NULL;
+	sopt.map_rows = 0;
+	sopt.map_cols = 0;
 	sopt.pwd_length = 8;
+	sopt.chiavazione_length = 0;
 	
 	/*Parser section*/
 	struct argp_option options[] = { 
@@ -347,20 +344,28 @@ int main (int argc, char **argv){
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
 	
-	load_from_file = file_exist(sopt.file);
+	sopt.chiavazione_length = get_chiavazione_length((sopt.map_rows * sopt.map_cols) -1, sopt.pwd_length);
 	
-	//load config from file if exist
-	if(sopt.file != NULL && load_from_file){
-		load_server_opt();
-		//print
-		if(sopt.verbose){
-			printf("server options succesfully loaded from file \"%s\"\n\n",sopt.file);
-		}
-	}else if(sopt.file != NULL && !load_from_file){
-		save_server_opt();
-		//print
-		if(sopt.verbose){
-			printf("server options succesfully saved on file \"%s\"\n\n",sopt.file);
+
+	if(sopt.file != NULL){
+		load_from_file = file_exist(sopt.file);
+		if(file_open())
+			exit(-1);
+		
+		//load config from file if exist
+		if(load_from_file){
+			load_server_opt();
+			//print
+			if(sopt.verbose){
+				print_info();printf("server options succesfully loaded from file \"%s\"\n",sopt.file);
+				print_info();puts(" !! command line args and options will be ignored !!");
+			}
+		}else{
+			save_server_opt();
+			//print
+			if(sopt.verbose){
+				print_info();printf("server options succesfully saved on file \"%s\"\n",sopt.file);
+			}
 		}
 	}
 	
@@ -369,21 +374,37 @@ int main (int argc, char **argv){
 	
 	//memmory structure initialization
 	reservation_init(sopt.map_rows*sopt.map_cols,sopt.pwd_length);
+	extern struct res_entry * reserv_array;
 	
-	if(sopt.file != NULL && load_from_file){
-		puts("loading reservation");
-		extern struct res_entry * array;
-		if(load_reservation_array(sopt.map_rows*sopt.map_cols,array,get_chiavazione_length((sopt.map_rows*sopt.map_cols)-1,sopt.pwd_length))){
-			puts("error loading reservation array from file");
-			close_routine(-1);
+	//from here can't do simple exit call!!
+	
+	if(sopt.file != NULL){
+		if(load_from_file){
+			print_info();puts("Loading reservation from file");
+			if(load_reservation_array(sopt.map_rows*sopt.map_cols,reserv_array,sopt.chiavazione_length)){
+				puts("error loading reservation array from file\n");
+				close_routine(-1);
+			}
+			print_info();puts("Processing delta changes");
+			if(load_delta()){
+				puts("loading delta failed");
+				close_routine(-1);
+			}
+			
+		}else{
+			print_info();puts("Saving reservation on file");
+			if(save_reservation_array(sopt.map_rows*sopt.map_cols,reserv_array,sopt.chiavazione_length)){
+				puts("error saving reservation array from file");
+				close_routine(-1);
+			}
 		}
 	}
-	
 	
 	//thing pointed to by matrix is an array of map_cols char
 	char (*matrix)[sopt.map_cols] =(char (*)[sopt.map_cols]) get_matrix();
 	
 	// debug seats
+	printf("\n");
 	if(sopt.colored != 0)
 		print_SeatsMap_Colored(sopt.map_rows,sopt.map_cols,matrix);
 	else

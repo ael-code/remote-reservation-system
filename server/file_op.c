@@ -15,14 +15,29 @@ static int res;
 extern struct server_option sopt;
 static int des_f;
 
+int file_exist(char * file){
+	struct stat s;
+	return stat(file,&s)? 0: 1;
+}
+
+int file_close(){
+	if(close(des_f) == -1){
+		perror("closing file");
+		return -1;
+	}
+	return 0;
+}
+
+int file_open(){
+	des_f = open(sopt.file,O_RDWR);
+	if(des_f == -1){
+		des_f = open(sopt.file,O_CREAT|O_RDWR,0660);
+		if(des_f == -1){perror("creating file");return(-1);}
+	}
+	return 0;
+}
 
 void save_server_opt(){
-
-	des_f = open(sopt.file,O_RDWR|O_TRUNC);
-	if(des_f == -1){
-		des_f = open(sopt.file,O_CREAT|O_RDWR|O_TRUNC,0660);
-		if(des_f == -1){perror("creating file");exit(-1);}
-	}
 		
 	res = write(des_f,&sopt, sizeof(sopt));
 	if(res < sizeof(sopt)){
@@ -41,9 +56,6 @@ void load_server_opt(){
 	//save file name
 	char * temp_name = sopt.file;
 	
-	des_f = open(sopt.file,O_RDWR);
-	if(des_f == -1){perror("loading server option from file");exit(-1);}
-	
 	res = read(des_f,&sopt, sizeof(sopt));
 	if(res < sizeof(sopt)){
 		if(res == -1)
@@ -55,24 +67,9 @@ void load_server_opt(){
 	
 	//restore file name
 	sopt.file = temp_name;
-	
-	//if(close(des_f) == -1)
-	//	perror("closing file_ds in load_server_opt()");
-}
-
-int file_exist(char * file){
-	struct stat s;
-	return stat(file,&s)? 0: 1;
-}
-
-void file_close(){
-	if(close(des_f) == -1)
-		perror("closing file");
 }
 
 int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
-	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
-	if(res == -1){ perror("lseek in save_reservation_array");return(-1);}
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
@@ -90,8 +87,8 @@ int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 		if(punt->s_num != 0){
 				
 			//write chiavazione
-			res = write(des_f,punt->chiavazione,chiav_dim);
-			if(res < chiav_dim){
+			res = write(des_f,punt->chiavazione,chiav_dim+1);
+			if(res < chiav_dim+1){
 				if(res == -1)
 					perror("writing chiavazione on file");
 				else
@@ -116,8 +113,8 @@ int save_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 }
 
 int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned int chiav_dim){
-	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
-	if(res == -1){ perror("lseek in load_reservation_array");return(-1);}
+	//res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
+	//if(res == -1){ perror("lseek in load_reservation_array");return(-1);}
 	
 	struct res_entry * punt = arr;
 	while(punt - arr < arr_dim){
@@ -138,8 +135,8 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 			punt->chiavazione = malloc(chiav_dim+1);
 			if(punt->chiavazione == NULL){perror("error in malloc load_reservation_array");return(-1);}
 						
-			res = read(des_f,punt->chiavazione,chiav_dim);
-			if(res < chiav_dim){
+			res = read(des_f,punt->chiavazione,chiav_dim+1);
+			if(res < chiav_dim+1){
 				if(res == -1)
 					perror("reading chiavazione from file");
 				else
@@ -169,42 +166,61 @@ int load_reservation_array(unsigned int arr_dim, struct res_entry * arr,unsigned
 	return 0;
 }
 int save_delta_del(unsigned int index){
-	struct d_delta{
-		char op;
-		unsigned int i;
-	} d_delta;
-	d_delta.op = 'D';
-	d_delta.i = index;
-
-	res = write(des_f,&d_delta,sizeof(d_delta));
-	if(res < sizeof(d_delta)){
+	
+	//write operation character
+	char op = 'D';
+	res = write(des_f,&op,sizeof(op));
+	if(res < sizeof(op)){
 		if(res == -1)
-			perror("writing d_delta on file");
+			perror("writing op char on file");
 		else
-			puts("error: writing d_delta on file");
+			puts("error: writing op char on file");
+		return -1;
+	}
+	
+	//write index
+	res = write(des_f,&index,sizeof(index));
+	if(res < sizeof(index)){
+		if(res == -1)
+			perror("writing index on file");
+		else
+			puts("error: writing index on file");
 		return -1;
 	}
 	return 0;	
 }
 
 int save_delta_add(unsigned int index, struct res_entry * reservation){
-	struct s_delta{
-		char op;
-		unsigned int i;
-		unsigned int s_num;
-	} s_delta;
 	
-	s_delta.op = 'A';
-	s_delta.i = index;
-	s_delta.s_num = reservation->s_num;
-	
-	res = write(des_f,&s_delta,sizeof(s_delta));
-	if(res < sizeof(s_delta)){
+	//write operation character
+	char op = 'A';
+	res = write(des_f,&op,sizeof(op));
+	if(res < sizeof(op)){
 		if(res == -1)
-			perror("writing s_delta on file");
+			perror("writing op char on file");
 		else
-			puts("error: writing s_delta on file");
-		return(-1);
+			puts("error: writing op char on file");
+		return -1;
+	}
+	
+	//write index
+	res = write(des_f,&index,sizeof(index));
+	if(res < sizeof(index)){
+		if(res == -1)
+			perror("writing index on file");
+		else
+			puts("error: writing index on file");
+		return -1;
+	}
+	
+	//write s_num
+	res = write(des_f,&(reservation->s_num),sizeof(reservation->s_num));
+	if(res < sizeof(reservation->s_num)){
+		if(res == -1)
+			perror("writing s_num on file");
+		else
+			puts("error: writing s_num on file");
+		return -1;
 	}
 	
 	//write seats
@@ -218,16 +234,124 @@ int save_delta_add(unsigned int index, struct res_entry * reservation){
 	}
 	
 	//write chiavazione
-	unsigned int size_chiav = strlen(reservation->chiavazione);
-	res = write(des_f,reservation->chiavazione,size_chiav);
-	if(res < size_chiav){
+	res = write(des_f,reservation->chiavazione,sopt.chiavazione_length+1);
+	if(res < sopt.chiavazione_length+1){
 		if(res == -1)
-			perror("writing chivazione on file");
+			perror("writing chiavazione on file");
 		else
 			puts("error: writing chiavazione on file");
 		return(-1);
 	}
 	
 	return 0;		
+}
+
+//this function expetcs file pointer positioned at the beginning of delta entries in file
+int load_delta(){
+	char op;
+	unsigned int index;
+	//read first char until file is terminated
+	while((res = read(des_f,&op,sizeof(op))) != 0){
+		if(res < sizeof(op)){
+			if(res == -1)
+				perror("reading delta op from file");
+			else
+				puts("error: reading delta op from file");
+			return(-1);
+		}
+		
+		switch (op){
+			case 'A':;
+				
+				struct res_entry temp_entry;
+				
+				//read index from delta op
+				res = read(des_f,&index,sizeof(index));
+				if(res < sizeof(index)){
+					if(res == -1)
+						perror("reading index from file");
+					else
+						puts("error: reading index from file");
+					return(-1);
+				}
+				
+				//read seats_num from delta op
+				res = read(des_f, &temp_entry.s_num, sizeof(temp_entry.s_num));
+				if(res<sizeof(temp_entry.s_num)){
+					if(res == -1)
+						perror("reading seats_num from file");
+					else
+						puts("error: reading seats_num from file");
+					return(-1);
+				}				
+								
+				//read seats_arr from delta op
+				int size_seats = temp_entry.s_num * sizeof(struct seat);
+				temp_entry.seats = malloc(size_seats);
+				res = read(des_f, temp_entry.seats, size_seats);
+				if(res < size_seats){
+					if(res == -1)
+						perror("reading seats from file");
+					else
+						puts("error: reading seats from file");
+					return(-1);
+				}
+				
+				//read chiavazione from delta op
+				temp_entry.chiavazione = malloc(sopt.chiavazione_length+1);
+				if(temp_entry.chiavazione == NULL){perror("error in malloc load_delta");return(-1);}
+				
+				res = read(des_f, temp_entry.chiavazione, sopt.chiavazione_length+1);
+				if(res < sopt.chiavazione_length+1){
+					if(res == -1)
+						perror("reading chiavazione from file");
+					else
+						puts("error: reading chiavazione from file");
+					return(-1);
+				}
+				
+				insert_res_in_array(index,&temp_entry);
+				
+			break;
+			case 'D':;
+				
+				res = read(des_f,&index,sizeof(index));
+				if(res < sizeof(index)){
+					if(res == -1)
+						perror("reading index from file");
+					else
+						puts("error: reading index from file");
+					return(-1);
+				}
+				
+				remove_res_from_array(index);		
+			
+			break;
+			default:
+				puts("invalid character read from file");
+				return(-1);
+		}
+	}
+	
+	//refresh file
+	//delete all but server sopt from file (also file pointer)
+	res = ftruncate(des_f, sizeof(struct server_option));
+	if(res == -1){
+		perror("ftruncate error");
+		return -1;
+	}
+	res = lseek(des_f,sizeof(struct server_option),SEEK_SET); 
+	if(res == -1){ 
+		perror("lseek in load_delta");
+		return(-1);
+	}
+	extern struct res_entry * reserv_array;
+	res = save_reservation_array(sopt.map_rows*sopt.map_cols,reserv_array,sopt.chiavazione_length);
+	if(res){
+		puts("Error file_op.c: save_reservation_array() in load_delta");
+		return -1;
+	}
+	
+	return 0;
 }
 

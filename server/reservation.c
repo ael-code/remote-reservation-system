@@ -4,37 +4,34 @@
 #include <sys/sem.h>
 #include <fcntl.h>
 #include "matrix.h"
+#include "file_op.h"
 #include "reservation.h"
 #include "chiavazione.h"
 #include "seats.h"
 
-struct res_entry * array;
+struct res_entry * reserv_array;
 static struct res_entry * free_p; //pointer to the first free entry of array. It is NULL if there is no free cell
 static unsigned int array_dim;
 static unsigned int pwd_length;
 static int semid;
 static int res;
 
-/*
-*	update the pointer "free_p" searching for the next free entries.
-*	If there aren't free entries it sets free_p to NULL
-*/
 void update_freep(unsigned int index){
 	
 	//paranoic control
 	if(index >= array_dim){puts("reservation.c: index out of bounds in update_freep()");exit(-1);}
 	
 	//case entry was freed
-	if((array+index)->s_num == 0){
+	if((reserv_array+index)->s_num == 0){
 		//if this entry is upper then the one pointed by free_p, update free_p
-		if(free_p == NULL || free_p-array > index )		
-			free_p = array+index;
+		if(free_p == NULL || free_p-reserv_array > index )		
+			free_p = reserv_array+index;
 			
 	//case entry was occupied
 	}else{
-		//find next free entry of array
+		//find next free entry of reserv_array
 		struct res_entry * temp = free_p+1;
-		while(temp-array < array_dim){
+		while(temp-reserv_array < array_dim){
 			if(temp->s_num == 0){
 				free_p=temp;
 				return;
@@ -57,15 +54,15 @@ void reservation_init(unsigned int max_rese,unsigned int pwd_l){
 	initialize_generator();
 	pwd_length = pwd_l;
 	
-	//allocate blank memory for array
+	//allocate blank memory for reserv_array
 	void * allocated;
 	allocated = calloc(max_rese,sizeof(struct res_entry));
 	if(allocated == NULL){perror("reservation_init(): malloc");exit(-1);}
-	array = (struct res_entry *)allocated;
+	reserv_array = (struct res_entry *)allocated;
 	array_dim = max_rese;
 	
 	//set free pointer to the first entry
-	free_p = array;
+	free_p = reserv_array;
 	
 	/*	IPC_PRIVATE isn't a flag field but a key_t type.  If this
    *   special value is used for key, the  system  call  ignores
@@ -132,7 +129,7 @@ char * reservation_perform(int s_num,struct seat * seats){
 	my_entry->s_num = s_num;
 	
 	//find the new free entry
-	update_freep(free_p-array);
+	update_freep(free_p-reserv_array);
 	
 	//release free_p semaphore
 	sops.sem_op = 1;
@@ -148,7 +145,13 @@ char * reservation_perform(int s_num,struct seat * seats){
 	//seats in my_entry have to point to the copy of seats 
 	my_entry->seats = memcpy(seats_mem,seats,sizeof(struct seat)*s_num);
 	//generate chivazione
-	my_entry->chiavazione = chiavazione_gen(my_entry-array,array_dim-1,pwd_length);
+	my_entry->chiavazione = chiavazione_gen(my_entry-reserv_array,array_dim-1,pwd_length);
+	
+	//save delta on file
+	if(save_delta_add(my_entry - reserv_array, my_entry)){
+		puts("reservation.c: error on save_delta_add()");
+		exit(-1);
+	}
 	
 	return my_entry->chiavazione;	
 }
@@ -163,17 +166,17 @@ int reservation_delete(char * chiavazione){
 	if(index >= array_dim)return -1;
 	
 	//return -1 if chiavazione doesn't match
-	if(array[index].chiavazione == NULL || strcmp(chiavazione,array[index].chiavazione) != 0)
+	if(reserv_array[index].chiavazione == NULL || strcmp(chiavazione,reserv_array[index].chiavazione) != 0)
 		return -1;
 	
 	//Store res_entry before cleaning it
-	char * temp_chiavazione = array[index].chiavazione;
-	array[index].chiavazione = NULL;
+	char * temp_chiavazione = reserv_array[index].chiavazione;
+	reserv_array[index].chiavazione = NULL;
 	
-	struct seat * temp_seats = array[index].seats;
-	array[index].seats = NULL;
+	struct seat * temp_seats = reserv_array[index].seats;
+	reserv_array[index].seats = NULL;
 
-	int temp_s_num = array[index].s_num;
+	int temp_s_num = reserv_array[index].s_num;
 	
 	
 	/* FREE POINTER ACCESS */
@@ -190,7 +193,7 @@ int reservation_delete(char * chiavazione){
 	* 	can't stay before pointer access cause could become occupied 
 	* 	before updating free pointer for this entry
 	*/
-	array[index].s_num = 0;
+	reserv_array[index].s_num = 0;
 	
 	update_freep(index);
 	
@@ -206,7 +209,13 @@ int reservation_delete(char * chiavazione){
 	free_seats(temp_s_num, temp_seats);
 	
 	/* END MATRIX ACCESS */
-
+	
+	//save delta del
+	if(save_delta_del(index)){
+		puts("reservation.c: save_delta_del()");
+		exit(-1);
+	}
+	
 	//free chiavazione
 	free(temp_chiavazione);
 	
@@ -221,18 +230,23 @@ struct res_entry * get_reservation(char * chiavazione){
 	int index = get_chiavazione_index(chiavazione, array_dim -1);
 	
 	//return -1 if chiavazione doesn't match
-	if(array[index].chiavazione == NULL || strcmp(chiavazione,array[index].chiavazione) != 0)
+	if(reserv_array[index].chiavazione == NULL || strcmp(chiavazione,reserv_array[index].chiavazione) != 0)
 		return NULL;
 	
-	return array+index;
+	return reserv_array+index;
 }
 
+/*
+* insert this @reservation in array directly. It doesn't involve semaphores (use sequentially).
+* Should be used ONLY to populate array during delta loading.
+* Used by load_delta() in file_op.
+*/
 int insert_res_in_array(unsigned int index, struct res_entry * reservation){
 	//return -1 if index is out of bounds
 	if(index >= array_dim)return -1;
 	
 	//paranoic control
-	if(free_p == NULL || free_p != array+index) return -1;
+	if(free_p == NULL || free_p != reserv_array+index) return -1;
 	
 	//control if seats respect constraints
 	if(control_seats(reservation->s_num,reservation->seats))return -1;
@@ -240,33 +254,36 @@ int insert_res_in_array(unsigned int index, struct res_entry * reservation){
 	occupy_seats(reservation->s_num, reservation->seats);
 	
 	//fill in res_entry
-	array[index].s_num = reservation->s_num;
-	array[index].seats = reservation->seats;
-	array[index].chiavazione = reservation->chiavazione;
+	reserv_array[index].s_num = reservation->s_num;
+	reserv_array[index].seats = reservation->seats;
+	reserv_array[index].chiavazione = reservation->chiavazione;
 
 	//find the new free entry
 	update_freep(index);
 	
 	return 0;
 }
+
+/*
+* remove the reservation at @index position in array directly. It doesn't involve semaphores (use sequentially).
+* Should be used ONLY to populate array during delta loading.
+* Used by load_delta() in file_op.
+*/
 int remove_res_from_array(unsigned int index){
 	//return -1 if index is out of bounds
 	if(index >= array_dim)return -1;
 	
-	free_seats(array[index].s_num, array[index].seats);
+	free_seats(reserv_array[index].s_num, reserv_array[index].seats);
 	
 	//clean res_entry
-	array[index].s_num = 0;
-	free(array[index].chiavazione);
-	array[index].chiavazione = NULL;
-	free(array[index].seats);
-	array[index].seats = NULL;
+	reserv_array[index].s_num = 0;
+	free(reserv_array[index].chiavazione);
+	reserv_array[index].chiavazione = NULL;
+	free(reserv_array[index].seats);
+	reserv_array[index].seats = NULL;
 	
 	update_freep(index);
-	
-	
-	
+		
 	return 0;
-	
 }
 
