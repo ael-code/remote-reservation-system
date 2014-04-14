@@ -29,7 +29,7 @@ Il server deve poter gestire le richieste dei client in modo concorrente.
 ###Scaricare il codice sorgente
 Posizionarsi nella cartella dove si vuole scaricare il codice e utilizzare wget
 ``` Bash
-wget -c "https://github.com/ael-code/remote-reservation-system/archive/semaphores.zip" -O remote-reservation-system.zip
+wget -c "https://github.com/ael-code/remote-reservation-system/archive/semaphores.zip" -O "remote-reservation-system.zip"
 ```
 Decomprimere l'archivio
 ``` Bash
@@ -47,3 +47,7 @@ make
 Verra' creata una cartella "bin" contenente i due 
 eseguibili e i file intermedi utili alla compilazione 
 (con estensione '.o')
+
+#Esecuzione
+##Server
+##Client
