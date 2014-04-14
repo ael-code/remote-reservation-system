@@ -89,3 +89,34 @@ Se si e' utilizzato il metodo di compilazione sopra descritto il file eseguibile
 ```Bash
 bin/rss-client
 ```
+Il client necessita di due parametri obbligatori da passare tramite riga di comando e accetta eventuali parametri opzionali
+> rss-client [OPTION...] hostname port
+
+- **hostname** indica l'ip della macchina remota dove sta girando il processo server
+- **port**     indica la porta sul quale e' in ascolto il processo server
+
+###Parametri opzionali
+```
+Operations:
+  -d, --delete=CODE          Request to revocate a reservation
+  -r, --reserve              Reserve some seats
+
+ Settings:
+  -c, --colored-output       Colored output
+  -v, --verbose              Verbose output
+
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+###Esempi
+Richiedi la situazione attuale dei posti al server 
+
+```client -cv 127.0.0.1 1234```
+
+Effettua una prenotazione. In questo caso verra' avviata un'interazione con l'utente per l'immisione del numero e della posizione dei posti dsiderati.
+
+```client -cv 127.0.0.1 1234 -r```
+
+Richiedi la cancellazione di una prenotazione precedentemente effettuata. **CODE** e' il codice ricevuto dal server durante la prenotazione
+
+```client -cv 127.0.0.1 1234 -d 'CODE'```
