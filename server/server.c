@@ -57,7 +57,7 @@ void close_routine(int s){
 		else printf("Closed main socket\n");
 	}
 	
-	file_close();
+	if(sopt.file != NULL)file_close();
 	pthread_exit(NULL);
 }
 
@@ -264,6 +264,20 @@ int start_listen_thread(){
 	}
 }
 
+static char doc[] = "\n\
+Server to manage a remote reservation system for cinema/theater\
+\v\
+Examples:\n\
+- Start a server with 25 seats listening on port 8080\n\
+   server -cv 5 5 -p 8080\n\
+- Start a server with 10 seats on random port saving session on file rss.bk\n\
+   server -cv 5 2 -f 'rss.bk'\n\
+- Resume server session from file rss.b\n\
+   server -f rss.bk\n\n\
+To submit a bug or see the source code, please visit:\n\
+   https://github.com/ael-code/remote-reservation-system\n\n\
+";
+
 error_t parse_opt (int key, char *arg, struct argp_state *state){
 	int temp;
 	switch (key){
@@ -300,7 +314,6 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 					break;
 			}break;
 		case ARGP_KEY_END:
-			printf ("\n");
 			if( (sopt.file == NULL || (sopt.file != NULL && file_exist(sopt.file) == 0) ) && state->arg_num < 2 ){
 				printf("ERROR: too few arguments\n");
 				argp_usage(state);
@@ -345,15 +358,17 @@ int main (int argc, char **argv){
 	sopt.chiavazione_length = 0;
 	
 	/*Parser section*/
-	struct argp_option options[] = { 
+	struct argp_option options[] = {
+		{0,0,0,0,"General options:"},
 		{"port", 'p', "PORT-NUM", 0, "Listening port"},
-		{"colored-output", 'c', 0, 0,"Colored output"},
 		{"file", 'f', "FILE-NAME", 0,"Backup file"},
-		{"verbose",'v',0,0,"Verbose output"},
 		{"pwd-length", 's', "LENGTH", 0,"length of password used to generate reservation keys [default 8]"},
+		{0,0,0,0,"Output options:"},
+		{"verbose",'v',0,0,"Verbose output"},
+		{"colored-output", 'c', 0, 0,"Colored output"},
 		{ 0 }
 	};
-	struct argp argp = { options, parse_opt, "rows cols", 0 };
+	struct argp argp = { options, parse_opt, "rows columns", doc };
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
 	
