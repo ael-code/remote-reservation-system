@@ -50,4 +50,42 @@ eseguibili e i file intermedi utili alla compilazione
 
 #Esecuzione
 ##Server
+Se si e' utilizzato il metodo di compilazione sopra descritto il file eseguibile relativo al server si trova in:
+```Bash
+bin/rss-server
+```
+Il server necessita di due parametri obbligatori da passare tramite riga di comando e accetta eventuali parametri opzionali
+> rss-server [OPTION...] rows columns
+
+rows e coloumns servono a definire il numero totale di posti che la sala puo' ospitare. I posti sono gestiti dal programma come una matrice e questi due parametri servono proprio a specificare le caratteristiche di quest matrice.
+###Parametri opzionali
+```
+General options:
+  -f, --file=FILE-NAME       Backup file
+  -p, --port=PORT-NUM        Listening port
+  -s, --pwd-length=LENGTH    length of password used to generate reservation keys [default 8]
+
+ Output options:
+  -c, --colored-output       Colored output
+  -v, --verbose              Verbose output
+
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+###Esempi
+Avviare un server che gestisce 25 posti e rimane in ascolto sulla porta 8080
+
+```rss-server -cv 5 5 -p 8080```
+
+Avviare un server che gestisce 10 posti, rimane in ascolto su una porta casuale e salva la sessione sul file "rss.bk"
+
+```rss-server -cv 5 2 -f 'rss.bk'```
+
+Ripristinare la sessione salvata sul file "rss.bk"
+
+```server -f rss.bk```
 ##Client
+Se si e' utilizzato il metodo di compilazione sopra descritto il file eseguibile relativo al client si trova in:
+```Bash
+bin/rss-client
+```
