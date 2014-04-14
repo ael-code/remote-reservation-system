@@ -10,17 +10,16 @@ bin:
 
 
 ## Client
-bin/client: bin/client.o bin/seats.o bin/conversion.o
-	$(CC) -o bin/client bin/client.o bin/seats.o bin/conversion.o $(LFLAGS)
+bin/rss-client: bin/client.o bin/seats.o bin/conversion.o
+	$(CC) -o bin/rss-client bin/client.o bin/seats.o bin/conversion.o $(LFLAGS)
 
 bin/client.o: client/client.c
 	$(CC) -o bin/client.o client/client.c $(CFLAGS)
-	
 
 
 ## Server
-bin/server: bin/server.o bin/file_op.o bin/threads.o bin/reservation.o bin/chiavazione.o bin/matrix.o bin/seats.o bin/conversion.o
-	$(CC) -o bin/server bin/server.o bin/file_op.o bin/threads.o bin/reservation.o bin/chiavazione.o bin/matrix.o bin/seats.o bin/conversion.o $(LFLAGS) -pthread
+bin/rss-server: bin/server.o bin/file_op.o bin/threads.o bin/reservation.o bin/chiavazione.o bin/matrix.o bin/seats.o bin/conversion.o
+	$(CC) -o bin/rss-server bin/server.o bin/file_op.o bin/threads.o bin/reservation.o bin/chiavazione.o bin/matrix.o bin/seats.o bin/conversion.o $(LFLAGS) -pthread
 
 bin/server.o: server/server.c
 	$(CC) -o bin/server.o server/server.c $(CFLAGS)
