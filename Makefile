@@ -3,7 +3,7 @@ DEBUG =
 CFLAGS = -I lib -O3 -Wall -D_GNU_SOURCE -c $(DEBUG)
 LFLAGS = -Wall $(DEBUG)
 
-all: bin bin/client bin/server
+all: bin bin/rss-client bin/rss-server
 
 bin:
 	mkdir -p bin
