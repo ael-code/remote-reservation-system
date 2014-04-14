@@ -14,6 +14,8 @@
 
 #define LINE_DIM 100
 
+
+
 struct client_option{
 	int server_port;  					// port of the server to contact
 	char * server_ip;  					// ip of the server to contact
@@ -359,6 +361,20 @@ int connect_to_server(){
 	return sok;
 }
 
+static char doc[] = "\n\
+Client implementation to interact with a remote-reservation-server\
+\v\
+Examples:\n\
+- Displays the current status of seats \n\
+   client -cv 127.0.0.1 1234\n\
+- Make a reservation\n\
+   client -cv 127.0.0.1 1234 -r\n\
+- Cancel a reservation\n\
+   client -cv 127.0.0.1 1234 -d 'CODE'\n\n\
+To submit a bug or see the source code, please visit:\n\
+   https://github.com/ael-code/remote-reservation-system\n\n\
+";
+
 error_t parse_opt (int key, char *arg, struct argp_state *state){
 	int p;
 	switch (key){
@@ -390,7 +406,6 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			}
 			break;
 		case ARGP_KEY_END:
-			printf ("\n");
 			if(state->arg_num < 2){
 				printf("ERROR: too few arguments\n");
 				argp_usage(state);
@@ -411,13 +426,15 @@ int main (int argc, char **argv){
 	
 	/*Parser section*/
 	struct argp_option options[] = { 
-		{"colored-output", 'c', 0, 0,"Colored output"},
+		{0,0,0,0,"Operations:"},
 		{"reserve", 'r', 0, 0,"Reserve some seats"},
+		{"delete", 'd', "CODE" , 0,"Request to revocate a reservation"},
+		{0,0,0,0,"Settings:"},
+		{"colored-output", 'c', 0, 0,"Colored output"},
 		{"verbose",'v',0,0,"Verbose output"},
-		{"delete", 'd', "CODE" , 0,"Request server to remove reservation whith this CODE"},
 		{ 0 }
 	};
-	struct argp argp = { options, parse_opt, "hostname port", 0 };
+	struct argp argp = { options, parse_opt, "hostname port", doc };
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
 	
