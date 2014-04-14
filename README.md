@@ -2,8 +2,7 @@ Remote Reservation System
 =========================
 Sistema di prenotazione posti remoto.
 
-Specifica
--------------------------
+#Specifica
 Realizzazione di un sistema di prenotazione posti per una sala
 cinematografica. Un processo su una macchina server gestisce una mappa di
 posti per una sala cinematografica. Ciascun posto e' caratterizzato da un
@@ -25,3 +24,26 @@ Si precisa che lo studente e' tenuto a realizzare sia il client che il
 server.
 
 Il server deve poter gestire le richieste dei client in modo concorrente.
+
+#Installazione
+###Scaricare il codice sorgente
+Posizionarsi nella cartella dove si vuole scaricare il codice e utilizzare wget
+``` Bash
+wget -c "https://github.com/ael-code/remote-reservation-system/archive/semaphores.zip" -O remote-reservation-system.zip
+```
+Decomprimere l'archivio
+``` Bash
+unzip remote-reservation-system.zip
+```
+Spostarsi nella cartella dove si trova il codice sorgente
+``` Bash
+cd remote-reservation-system-semaphores
+```
+###Compilazione
+Il processo di compilazione e' stato facilitato tramite l'utilizzo di un Makefile. E' sufficente invocare
+``` Bash
+make
+```
+Verra' creata una cartella "bin" contenente i due 
+eseguibili e i file intermedi utili alla compilazione 
+(con estensione '.o')

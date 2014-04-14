@@ -1,9 +1,13 @@
 CC = gcc
-DEBUG = -g
+DEBUG =
 CFLAGS = -I lib -O3 -Wall -D_GNU_SOURCE -c $(DEBUG)
 LFLAGS = -Wall $(DEBUG)
 
-all: bin/client bin/server
+all: bin bin/client bin/server
+
+bin:
+	mkdir -p bin
+
 
 ## Client
 bin/client: bin/client.o bin/seats.o bin/conversion.o
@@ -45,6 +49,9 @@ bin/seats.o: lib/seats.c
 bin/conversion.o: lib/conversion.c
 	$(CC) -o bin/conversion.o lib/conversion.c $(CFLAGS)
 
+
+
+.PHONY: clean_bin clean_bk stat
 
 clean_bin:
 	rm ./bin/*
