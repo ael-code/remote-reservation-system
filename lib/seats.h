@@ -1,5 +1,5 @@
-#ifndef SEATS_H
-#define SEATS_H
+#ifndef __SEATS__
+#define __SEATS__
 
 /*
 *	row and coloumn of a seat

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include "chiavazione.h"
-#include "../lib/conversion.h"
+#include "conversion.h"
 
 static char * seed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -13,9 +13,8 @@ static char * seed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345
 */
 char * chiavazione_gen(unsigned int index, unsigned int max_index ,unsigned int pwd_length){
 	pwd_length++; // include '\0'
-	int length = strlen(seed);
+	int seed_length = strlen(seed);
 	unsigned int i;
-	char pwd[pwd_length];
 	unsigned int index_max_length = int_to_charc(max_index);
 	
 	char * result;
@@ -38,7 +37,7 @@ char * chiavazione_gen(unsigned int index, unsigned int max_index ,unsigned int 
 	}
 	
 	for( i=0; i<pwd_length-1; i++){
-		int random = rand()%length;		
+		int random = rand()%seed_length;		
 		*punt++ = seed[random];
 	}
 	*punt='\0';
@@ -57,15 +56,20 @@ unsigned int get_chiavazione_index(char * chiavazione, unsigned int max_index){
 		tbuff[i] = chiavazione[i];
 	}
 	tbuff[i]='\0';
-	return strtol(tbuff,NULL,10);
+	return strtol(tbuff,NULL,10); //cast from long to u_int
 }
 
 /*
 *	Return the length for a chiavazione 
 *	whith this max_inex and this pwd length
+*    (doesn't include '\0')
 */
 unsigned int get_chiavazione_length(unsigned int max_index,unsigned int pwd_length){
 	return int_to_charc(max_index)+pwd_length;
+}
+
+unsigned int get_seed_length(){
+	return strlen(seed);
 }
 
 /*
