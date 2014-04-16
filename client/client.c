@@ -7,11 +7,14 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
-#include "../lib/rrs_protocol.h"
-#include "../lib/seats.h"
+#include "rrs_protocol.h"
+#include "seats.h"
 
 #define LINE_DIM 100
+
+
 
 struct client_option{
 	int server_port;  					// port of the server to contact
@@ -139,11 +142,12 @@ void reservation(int sok){
 	
 	char line[LINE_DIM];
 	unsigned int seats_num;
+	//loop until an unsigned int is received (sscanf returns number of variables acquired)
 	do{
 		printf("Insert the number of seats you want to reserve: ");
 		fflush(stdout);
 		fgets(line,LINE_DIM,stdin);
-		res = sscanf(line,"%u\n",&seats_num);
+		res = sscanf(line,"%u\n",&seats_num); 
 	}while(res < 1);
 	
 	if(seats_num == 0)exit(0);
@@ -176,7 +180,7 @@ void reservation(int sok){
 	
 	//send seats
 	res = send(sok,seats,sizeof(seats),0);
-	if(res == -1){perror("send");exit(-1);}
+	if(res <sizeof(seats)){perror("send seats data");exit(-1);}
 
 	//print
 	if(opt.verbose){
@@ -285,7 +289,7 @@ void delete_reservation(int sok){
 		exit(-1);
 	}
 	
-	//send request
+	//send chiavazione
 	res = send(sok,opt.chiavazione,strlen(opt.chiavazione)+1,0);
 	if(res == -1){perror("send key");exit(-1);}
 	
@@ -346,8 +350,12 @@ int connect_to_server(){
 	
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(opt.server_port);
-	inet_aton(opt.server_ip,&addr.sin_addr);
-	
+	res = inet_aton(opt.server_ip,&addr.sin_addr);
+	if(res == 0){
+		if(opt.colored) printf("\e[1;91mERROR: can't resolve address \"%s\"\e[0m \n\n",opt.server_ip);
+		else printf("ERROR: can't resolve address \"%s\"\n\n",opt.server_ip);
+		exit(-1);
+	}
 	sok = socket(AF_INET,SOCK_STREAM,0);
 	if(sok == -1){perror("socket");exit(-1);}
 	
@@ -356,6 +364,20 @@ int connect_to_server(){
 	
 	return sok;
 }
+
+static char doc[] = "\n\
+Client implementation to interact with a remote-reservation-server\
+\v\
+Examples:\n\
+- Displays the current status of seats \n\
+   client -cv 127.0.0.1 1234\n\
+- Make a reservation\n\
+   client -cv 127.0.0.1 1234 -r\n\
+- Cancel a reservation\n\
+   client -cv 127.0.0.1 1234 -d 'CODE'\n\n\
+To submit a bug or see the source code, please visit:\n\
+   https://github.com/ael-code/remote-reservation-system\n\n\
+";
 
 error_t parse_opt (int key, char *arg, struct argp_state *state){
 	int p;
@@ -388,7 +410,6 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
 			}
 			break;
 		case ARGP_KEY_END:
-			printf ("\n");
 			if(state->arg_num < 2){
 				printf("ERROR: too few arguments\n");
 				argp_usage(state);
@@ -409,13 +430,15 @@ int main (int argc, char **argv){
 	
 	/*Parser section*/
 	struct argp_option options[] = { 
-		{"colored-output", 'c', 0, 0,"Colored output"},
+		{0,0,0,0,"Operations:"},
 		{"reserve", 'r', 0, 0,"Reserve some seats"},
+		{"delete", 'd', "CODE" , 0,"Request to revocate a reservation"},
+		{0,0,0,0,"Settings:"},
+		{"colored-output", 'c', 0, 0,"Colored output"},
 		{"verbose",'v',0,0,"Verbose output"},
-		{"delete", 'd', "CODE" , 0,"Request server to remove reservation whith this CODE"},
 		{ 0 }
 	};
-	struct argp argp = { options, parse_opt, "hostname port", 0 };
+	struct argp argp = { options, parse_opt, "hostname port", doc };
 	argp_parse (&argp, argc, argv, 0, 0, NULL);
 	/* End parser */
 	
