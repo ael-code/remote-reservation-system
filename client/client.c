@@ -1,4 +1,3 @@
-//compile: gcc client.c ../lib/seats.c ../lib/conversion.c -o client.out
 #include <stdio.h>
 #include <argp.h>
 #include <pthread.h>
@@ -13,8 +12,6 @@
 #include "seats.h"
 
 #define LINE_DIM 100
-
-
 
 struct client_option{
 	int server_port;  					// port of the server to contact

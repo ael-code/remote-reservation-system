@@ -50,11 +50,13 @@ bin/conversion.o: lib/conversion.c
 
 
 
-.PHONY: clean_bin clean_bk stat
+.PHONY: clean clean_bin clean_bk stat
 
+clean: clean_bin clean_bk
+	rm -rf ./bin
 clean_bin:
-	rm ./bin/*
+	rm -f ./bin/*
 clean_bk:
-	rm ./*.bk
+	rm -f ./*.bk
 stat:	
 	./project_stat.sh
