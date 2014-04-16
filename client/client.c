@@ -13,6 +13,8 @@
 
 #define LINE_DIM 100
 
+
+
 struct client_option{
 	int server_port;  					// port of the server to contact
 	char * server_ip;  					// ip of the server to contact
@@ -347,8 +349,12 @@ int connect_to_server(){
 	
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(opt.server_port);
-	inet_aton(opt.server_ip,&addr.sin_addr);
-	
+	res = inet_aton(opt.server_ip,&addr.sin_addr);
+	if(res == 0){
+		if(opt.colored) printf("\e[1;91mERROR: can't resolve address \"%s\"\e[0m \n\n",opt.server_ip);
+		else printf("ERROR: can't resolve address \"%s\"\n\n",opt.server_ip);
+		exit(-1);
+	}
 	sok = socket(AF_INET,SOCK_STREAM,0);
 	if(sok == -1){perror("socket");exit(-1);}
 	

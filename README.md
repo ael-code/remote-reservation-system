@@ -29,7 +29,7 @@ Il server deve poter gestire le richieste dei client in modo concorrente.
 ###Scaricare il codice sorgente
 Posizionarsi nella cartella dove si vuole scaricare il codice e utilizzare wget
 ``` Bash
-wget -c "https://github.com/ael-code/remote-reservation-system/archive/semaphores.zip" -O "remote-reservation-system.zip"
+wget -c "https://github.com/ael-code/remote-reservation-system/archive/master.zip" -O "remote-reservation-system.zip"
 ```
 Decomprimere l'archivio
 ``` Bash
@@ -120,3 +120,26 @@ Effettua una prenotazione. In questo caso verra' avviata un'interazione con l'ut
 Richiedi la cancellazione di una prenotazione precedentemente effettuata. **CODE** e' il codice ricevuto dal server durante la prenotazione
 
 ```client -cv 127.0.0.1 1234 -d 'CODE'```
+
+#Tips & Tricks
+
+Elimina la cartella di compilazione e altri file temporanei (Attenzione cancella anche tutti i files con estensione ".bk")
+
+```make clean```
+
+Stampa le statistiche di questo progetto
+
+```make stat```
+
+#Troubleshooting
+
+Se l'esecuzione del server restituisce questo errore:
+> semget in matrix_init(): invalid argument
+
+Vuol dire che il programma sta tentando di allocare un numero di semafori o una dimensione dei semafori maggiore di quella permessa dal kernel del tuo sistema operativo. (Solitamente 32 semafori di dimensione 250).
+
+Per ovviare al problema si puo' modificare il file
+
+``` /proc/sys/kernel/sem ```
+
+Aumentando il primo valore (dimensione di ogni semaforo) e il terzo valore (numero di semafori totali)
