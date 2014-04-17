@@ -1,0 +1,11 @@
+[Unit]
+Description=Remote Reservation System server
+Documentation="https://github.com/ael-code/remote-reservation-system/blob/master/README.md"
+
+[Service]
+EnvironmentFile=/opt/remote-reservation-system/systemd/config
+ExecStart=/opt/remote-reservation-system/systemd/bin/rss-server $options $rows $cols 
+
+[Install]
+WantedBy=multi-user.target
+
